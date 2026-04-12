@@ -3,12 +3,7 @@ import { useAppContext } from '../context/AppContext';
 import { BottomNav } from '../components/Shared';
 
 const Profile = () => {
-  const { goScreen, userData } = useAppContext();
-  
-  // Logic to split name for the stylized header
-  const nameParts = userData.name.split(/(?<=.{4})/); // Split after 4 chars
-  const part1 = nameParts[0] || 'User';
-  const part2 = nameParts.slice(1).join('') || '';
+  const { goScreen } = useAppContext();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
@@ -23,10 +18,10 @@ const Profile = () => {
         {/* Name Block */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <span style={{ fontSize: 24, fontWeight: 700, color: 'black', letterSpacing: '0.2px' }}>{part1}</span>
-            <span style={{ fontSize: 9, marginTop: 4, marginLeft: 2, color: 'black', fontWeight: 600 }}>{userData.id}</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: 'black', letterSpacing: '0.2px' }}>Divyansh</span>
+            <span style={{ fontSize: 9, marginTop: 4, marginLeft: 2, color: 'black', fontWeight: 600 }}>#546677</span>
           </div>
-          {part2 && <div style={{ fontSize: 24, fontWeight: 700, color: 'black', marginTop: -8, letterSpacing: '0.2px' }}>{part2}</div>}
+          <div style={{ fontSize: 24, fontWeight: 700, color: 'black', marginTop: -8, letterSpacing: '0.2px' }}>nav</div>
         </div>
 
         {/* Hamburger Menu */}
@@ -42,8 +37,8 @@ const Profile = () => {
           <div style={{ background: 'white', borderRadius: 32, border: '2.5px solid black', boxShadow: '0px 18px 40px rgba(0,0,0,0.3)', position: 'relative', overflow: 'hidden', minHeight: 280 }}>
 
             {/* Avatar Video */}
-            <div style={{ position: 'absolute', right: 15, top: -10, bottom: 45, zIndex: 1, width: 250, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <video src="/r.mp4" autoPlay loop muted playsInline style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'right' }} />
+            <div style={{ position: 'absolute', right: 20, top: 20, bottom: 45, zIndex: 1, width: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <video src="/r.mp4" autoPlay loop muted playsInline style={{ maxWidth: '800%', maxHeight: '100%', objectFit: 'cover' }} />
             </div>
 
             {/* Edit Button */}
@@ -58,17 +53,17 @@ const Profile = () => {
 
               {/* Level Box */}
               <div style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, background: 'white', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 26, height: 26, background: '#fbbf24', border: '1.5px solid black', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 14 }}>{userData.level}</div>
+                <div style={{ width: 26, height: 26, background: '#fbbf24', border: '1.5px solid black', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 14 }}>7</div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: 'black' }}>Level {userData.level}</div>
-                  <div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 600, marginTop: 1 }}>{userData.id}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'black' }}>Level 0</div>
+                  <div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 600, marginTop: 1 }}>#546677</div>
                 </div>
               </div>
 
               {/* Stats inline block */}
               <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: '#8b5cf6', fontSize: 11 }}>⭐</span> {userData.xp} XP</div>
-                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: '#eab308' }}>🔥 {userData.streak}-Day Streak</div>
+                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: '#8b5cf6', fontSize: 11 }}>⭐</span> 3500 XP</div>
+                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: '#eab308' }}>🔥 17-Day Streak</div>
               </div>
 
               {/* Divider */}
@@ -77,7 +72,7 @@ const Profile = () => {
               {/* Completion text */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, color: 'black', marginBottom: 36 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="12"></circle><path d="M17 8l-7 7-3-3" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"></path></svg>
-                Completed {userData.completedLevels} Levels
+                Completed 32 Levels
               </div>
 
               {/* Social icons */}
