@@ -1,0 +1,189 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(uuid())
+  supabaseUid String   @unique @map("supabase_uid")
+  email       String?  @unique
+  name        String
+  balance     Float    @default(100000)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  orders           Order[]
+  holdings         Holding[]
+  buyTransactions  Transaction[] @relation("Buyer")
+  sellTransactions Transaction[] @relation("Seller")
+  posts            Post[]
+  likes            Like[]
+  comments         Comment[]
+  ipoOrders        IpoOrder[]
+
+  @@index([supabaseUid])
+  @@index([email])
+  @@map("profiles")
+}
+
+model Stock {
+  id           String   @id @default(uuid())
+  name         String
+  symbol       String   @unique
+  currentPrice Float    @map("current_price")
+  sector       String   @default("General")
+  description  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  orders       Order[]
+  holdings     Holding[]
+  transactions Transaction[]
+  priceHistory PriceHistory[]
+  ipoOrders    IpoOrder[]
+
+  @@index([symbol])
+  @@map("stocks")
+}
+
+model Order {
+  id        String      @id @default(uuid())
+  userId    String      @map("user_id")
+  stockId   String      @map("stock_id")
+  type      OrderType
+  price     Float
+  quantity  Int
+  filled    Int         @default(0)
+  status    OrderStatus @default(OPEN)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@index([userId])
+  @@index([stockId])
+  @@index([status])
+  @@index([type, status, price])
+  @@map("orders")
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  buyerId   String   @map("buyer_id")
+  sellerId  String   @map("seller_id")
+  stockId   String   @map("stock_id")
+  price     Float
+  quantity  Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  buyer  User  @relation("Buyer", fields: [buyerId], references: [id])
+  seller User  @relation("Seller", fields: [sellerId], references: [id])
+  stock  Stock @relation(fields: [stockId], references: [id])
+
+  @@index([stockId])
+  @@index([buyerId])
+  @@index([sellerId])
+  @@map("transactions")
+}
+
+model Holding {
+  id       String @id @default(uuid())
+  userId   String @map("user_id")
+  stockId  String @map("stock_id")
+  quantity Int    @default(0)
+  avgPrice Float  @default(0) @map("avg_price")
+
+  user  User  @relation(fields: [userId], references: [id])
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@unique([userId, stockId])
+  @@index([userId])
+  @@map("holdings")
+}
+
+model PriceHistory {
+  id        String   @id @default(uuid())
+  stockId   String   @map("stock_id")
+  price     Float
+  timestamp DateTime @default(now())
+
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@index([stockId, timestamp])
+  @@map("price_history")
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  likes    Like[]
+  comments Comment[]
+
+  @@index([userId])
+  @@map("posts")
+}
+
+model Like {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  postId String @map("post_id")
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  postId    String   @map("post_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+  post Post @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@map("comments")
+}
+
+model IpoOrder {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  stockId   String   @map("stock_id")
+  amount    Float
+  status    String   @default("SUBMITTED")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id])
+  stock Stock @relation(fields: [stockId], references: [id])
+
+  @@map("ipo_orders")
+}
+
+enum OrderType {
+  BUY
+  SELL
+}
+
+enum OrderStatus {
+  OPEN
+  PARTIALLY_FILLED
+  COMPLETED
+  CANCELLED
+}

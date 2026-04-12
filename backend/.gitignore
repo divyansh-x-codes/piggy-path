@@ -1,0 +1,4 @@
+.env
+firebase/serviceAccountKey.json
+node_modules/
+prisma/migrations/
