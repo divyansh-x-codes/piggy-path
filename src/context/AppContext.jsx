@@ -12,18 +12,25 @@ import { httpsCallable } from 'firebase/functions';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
+  // ─── INITIAL STATE RECOVERY FROM LOCAL STORAGE ───────────────────────────────
+  const savedScreen = localStorage.getItem('piggy_screen') || 'splash';
+  const savedStockId = localStorage.getItem('piggy_stockId');
+  const savedWatchlist = JSON.parse(localStorage.getItem('piggy_watchlist') || '["msft", "aapl", "tcs"]');
+
   const [currentUser, setCurrentUser]     = useState(null);
-  const [currentScreen, setCurrentScreen] = useState('splash');
+  const [currentScreen, setCurrentScreen] = useState(savedScreen);
   const [prevScreens, setPrevScreens]     = useState([]);
   const [portfolio, setPortfolio]         = useState({});
   const [marketPrices, setMarketPrices]   = useState({});
   const [marketHistory, setMarketHistory] = useState({});
   const [socket, setSocket]               = useState(null);
-  const [tradeHistory, setTradeHistory]   = useState([]);   // current user's trades (for their history)
-  const [globalTrades, setGlobalTrades]   = useState([]);   // ALL users' trades (for global price impact)
-  const [currentStock, setCurrentStock]   = useState(null);
+  const [tradeHistory, setTradeHistory]   = useState([]);
+  const [globalTrades, setGlobalTrades]   = useState([]);
+  const [currentStock, setCurrentStock]   = useState(
+    STOCKS.find(s => s.id === savedStockId) || null
+  );
   const [ipoOrders, setIpoOrders]         = useState([]);
-  const [watchlist, setWatchlist]         = useState(['msft', 'aapl', 'tcs']);
+  const [watchlist, setWatchlist]         = useState(savedWatchlist);
   const [userData, setUserData]           = useState({
     name: '', level: 0, xp: 0, streak: 0,
     completedLevels: 0, balance: 100000, id: '#000000'
@@ -31,89 +38,82 @@ export const AppProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [posts, setPosts]     = useState([]);
 
-  // ─── GLOBAL TRADES LISTENER — ALL users, ALL stocks ──────────────────────────
-  // This is what makes prices GLOBAL — everyone sees the same price impact
+  // Sync Watchlist to localStorage
   useEffect(() => {
-    const q = query(
-      collection(db, 'transactions'),
-      orderBy('createdAt', 'asc'),
-      limit(500) // last 500 trades globally
-    );
+    localStorage.setItem('piggy_watchlist', JSON.stringify(watchlist));
+  }, [watchlist]);
+
+  // Sync currentStock to localStorage
+  useEffect(() => {
+    if (currentStock?.id) localStorage.setItem('piggy_stockId', currentStock.id);
+  }, [currentStock]);
+
+  // ─── GLOBAL TRADES LISTENER — ALL users, ALL stocks ──────────────────────────
+  useEffect(() => {
+    const q = query(collection(db, 'transactions'), orderBy('createdAt', 'asc'), limit(500));
     const unsub = onSnapshot(q, (snap) => {
-      const trades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setGlobalTrades(trades);
-    }, (err) => {
-      console.warn('[GlobalTrades] Could not load global trades:', err.message);
-    });
+      setGlobalTrades(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, (err) => console.warn('[GlobalTrades] Error:', err.message));
     return () => unsub();
   }, []);
 
-  // ─── AUTH LISTENER ────────────────────────────────────────────────────────────
+  // ─── AUTH LISTENER — HARDENED WITH PERSISTENCE ────────────────────────────────
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
 
-        // 1. Sync user profile from Firestore (real-time)
+        // Keep track of which snapshots have arrived to prevent empty flashes
+        let userInited = false;
+        let portInited = false;
+        const checkDone = () => {
+          if (userInited && portInited) {
+            setCurrentScreen(prev => (prev === 'auth' || prev === 'splash') ? 'home' : prev);
+            setLoading(false);
+          }
+        };
+
+        // 1. User Profile Listener
         const userDocRef = doc(db, 'users', user.uid);
         const unsubUser = onSnapshot(userDocRef, (docSnap) => {
           if (docSnap.exists()) {
             const data = docSnap.data();
-            const fallbackName = user.email
-              ? user.email.split('@')[0]
-              : (user.phoneNumber || 'Investor');
+            const fallbackName = user.email ? user.email.split('@')[0] : 'Investor';
             setUserData(prev => ({
-              ...prev,
-              ...data,
+              ...prev, ...data,
               name: data.username || data.name || fallbackName
             }));
           } else {
-            // Create user doc if missing
-            const fallbackName = user.email ? user.email.split('@')[0] : 'Investor';
-            setDoc(userDocRef, {
-              name: fallbackName,
-              balance: 100000,
-              createdAt: serverTimestamp()
-            }, { merge: true });
+            setDoc(userDocRef, { name: 'Investor', balance: 100000, createdAt: serverTimestamp() }, { merge: true });
           }
+          userInited = true;
+          checkDone();
         });
 
-        // 2. Real-time portfolio listener (THIS user only)
-        const qPortfolio = query(
-          collection(db, 'portfolio'),
-          where('userId', '==', user.uid)
-        );
+        // 2. Portfolio Listener
+        const qPortfolio = query(collection(db, 'portfolio'), where('userId', '==', user.uid));
         const unsubPortfolio = onSnapshot(qPortfolio, (snapshot) => {
           const holdings = {};
           snapshot.docs.forEach(d => {
             const data = d.data();
-            if ((data.quantity || 0) > 0) {
-              holdings[data.stockId] = {
-                quantity: data.quantity,
-                avgPrice: data.avgPrice,
-              };
-            }
+            if ((data.quantity || 0) > 0) holdings[data.stockId] = { quantity: data.quantity, avgPrice: data.avgPrice };
           });
           setPortfolio(holdings);
+          portInited = true;
+          checkDone();
         });
 
-        // 3. THIS user's trade history (for their own history tab)
-        const qTx = query(
-          collection(db, 'transactions'),
-          where('userId', '==', user.uid),
-          orderBy('createdAt', 'desc')
-        );
+        // 3. Trade History
+        const qTx = query(collection(db, 'transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'));
         const unsubTx = onSnapshot(qTx, (snapshot) => {
-          const history = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-          setTradeHistory(history);
+          setTradeHistory(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         });
 
-        setCurrentScreen(prev =>
-          (prev === 'auth' || prev === 'splash') ? 'home' : prev
-        );
-        setLoading(false);
+        // SAFETY: If snapshots take too long, force end loading after 3s
+        const timeout = setTimeout(() => { userInited = true; portInited = true; checkDone(); }, 3000);
 
         return () => {
+          clearTimeout(timeout);
           unsubUser();
           unsubPortfolio();
           unsubTx();
@@ -160,13 +160,16 @@ export const AppProvider = ({ children }) => {
     if (addHistory && currentScreen !== id) setPrevScreens([...prevScreens, currentScreen]);
     else if (!addHistory) setPrevScreens([]);
     setCurrentScreen(id);
+    localStorage.setItem('piggy_screen', id);
   };
 
   const goBack = () => {
     const newPrev = [...prevScreens];
     const prev = newPrev.pop();
     setPrevScreens(newPrev);
-    setCurrentScreen(prev || (currentUser ? 'home' : 'auth'));
+    const target = prev || (currentUser ? 'home' : 'auth');
+    setCurrentScreen(target);
+    localStorage.setItem('piggy_screen', target);
   };
 
   // ─── GLOBAL PRICE = basePrice + impact of ALL users' trades ──────────────────
