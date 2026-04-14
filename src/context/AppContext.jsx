@@ -12,10 +12,30 @@ import { httpsCallable } from 'firebase/functions';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  // ─── INITIAL STATE RECOVERY FROM LOCAL STORAGE ───────────────────────────────
-  const savedScreen = localStorage.getItem('piggy_screen') || 'splash';
-  const savedStockId = localStorage.getItem('piggy_stockId');
-  const savedWatchlist = JSON.parse(localStorage.getItem('piggy_watchlist') || '["msft", "aapl", "tcs"]');
+  // ─── INITIAL STATE RECOVERY FROM LOCAL STORAGE (HARDENED) ────────────────────
+  const VALID_SCREENS = [
+    'splash', 'auth', 'home', 'stocks', 'stock-detail', 
+    'profile', 'news', 'article', 'bucket', 'ipo', 'watchlist', 'analysis'
+  ];
+
+  let savedScreen = 'splash';
+  let savedStockId = null;
+  let savedWatchlist = ["msft", "aapl", "tcs"];
+
+  try {
+    const rawScreen = localStorage.getItem('piggy_screen');
+    if (rawScreen && VALID_SCREENS.includes(rawScreen)) {
+      savedScreen = rawScreen;
+    }
+    
+    savedStockId = localStorage.getItem('piggy_stockId');
+    const watchlistData = localStorage.getItem('piggy_watchlist');
+    if (watchlistData && watchlistData !== "undefined") {
+      savedWatchlist = JSON.parse(watchlistData);
+    }
+  } catch (err) {
+    console.warn('[Persistence] Recovery failed:', err);
+  }
 
   const [currentUser, setCurrentUser]     = useState(null);
   const [currentScreen, setCurrentScreen] = useState(savedScreen);

@@ -15,7 +15,10 @@ import Analysis from './screens/Analysis';
 import './index.css';
 
 const ScreenRenderer = () => {
-  const { currentScreen } = useAppContext();
+  const { currentScreen, loading } = useAppContext();
+
+  // Show Splash as a top-level blocker while loading initial data
+  if (loading) return <Splash />;
 
   return (
     <div className="screen active" style={{ animation: 'none' }}>
@@ -31,6 +34,8 @@ const ScreenRenderer = () => {
       {currentScreen === 'ipo' && <IPO />}
       {currentScreen === 'watchlist' && <Watchlist />}
       {currentScreen === 'analysis' && <Analysis />}
+      {/* Fallback to Home if screen is unknown or missing */}
+      {!['splash', 'auth', 'home', 'stocks', 'stock-detail', 'profile', 'news', 'article', 'bucket', 'ipo', 'watchlist', 'analysis'].includes(currentScreen) && <Home />}
     </div>
   );
 };
