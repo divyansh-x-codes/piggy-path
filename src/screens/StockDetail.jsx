@@ -26,7 +26,7 @@ function getPriceHistory(stock, range, trades = []) {
     base += base * (rng() * 0.04 - 0.018);
     hist.push(+base.toFixed(2));
   }
-  // Apply trade impacts (synchronized with getPrice logic)
+  // Apply trade impacts (Step impact logic for clear visual moves)
   let runPrice = hist[hist.length - 1];
   trades.forEach((t, ti) => {
     const idx = Math.max(pts - trades.length + ti, 0);
@@ -43,10 +43,12 @@ function getPriceHistory(stock, range, trades = []) {
     }
 
     runPrice += delta;
+    // Apply full delta to all points from the trade index onwards
     for (let j = idx; j < pts; j++) {
-      hist[j] = +(hist[j] + delta * (j - idx + 1) / pts).toFixed(2);
+      hist[j] = +(hist[j] + delta).toFixed(2);
     }
   });
+
   return hist;
 }
 
