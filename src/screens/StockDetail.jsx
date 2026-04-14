@@ -1,19 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  Title, 
-  Tooltip, 
-  Legend,
-  Filler
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement, 
+  LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
 import { useAppContext } from '../context/AppContext';
-import { db } from '../lib/firebase';
-import { collection, addDoc, doc, updateDoc, getDoc, setDoc, serverTimestamp, increment } from 'firebase/firestore';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -51,23 +42,22 @@ function getPriceHistory(stock, range, trades = []) {
 }
 
 const StockDetail = () => {
-  const { 
-    currentStock, goBack, goScreen, tradeHistory, portfolio, 
-    getPrice, marketHistory, userData, setUserData, currentUser,
-    addLocalTrade
+  const {
+    currentStock, goBack, goScreen, tradeHistory, globalTrades, portfolio,
+    getPrice, marketHistory, userData, currentUser,
+    updatePortfolio, updateBalance, recordTrade
   } = useAppContext();
 
-  const [range, setRange] = useState('1d'); // default = Current view
+  const [range, setRange] = useState('1d');
   const [tab, setTab] = useState('overview');
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState('buy');
   const [tradeQty, setTradeQty] = useState(1);
   const [showConfirm, setShowConfirm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [localPortfolio, setLocalPortfolio] = useState({});
 
-  // Generate chart data using HTML's getPriceHistory algo
-  const stockTrades = tradeHistory.filter(t => t.stockId === currentStock?.id);
+  // Chart: use globalTrades so ALL users see the SAME graph shape
+  const stockTrades = globalTrades.filter(t => t.stockId === currentStock?.id);
   const chartHistory = marketHistory[currentStock?.id]?.length > 5
     ? marketHistory[currentStock?.id]
     : getPriceHistory(currentStock || { basePrice: 100, id: 'x' }, range, stockTrades);
@@ -111,125 +101,56 @@ const StockDetail = () => {
     }
   };
 
-  // Merge Firestore portfolio with local state
-  const allPortfolio = { ...portfolio, ...localPortfolio };
-  const holding = allPortfolio[currentStock.id];
-  const qty = holding?.quantity || holding?.qty || 0;
+  // Portfolio from Firestore (via context) — persists across refresh
+  const holding = portfolio[currentStock.id];
+  const qty = holding?.quantity || 0;
   const avgPrice = holding?.avgPrice || 0;
   const invested = qty * avgPrice;
   const currValue = price * qty;
   const pnl = currValue - invested;
 
-  // ─── LOCAL TRADE (works without backend) ──────────────────────────────────
+  // ─── TRADE HANDLER — all state goes to Firestore via context ────────────────
   const handleConfirmTrade = async () => {
     if (loading) return;
     setLoading(true);
-
     try {
       const totalCost = price * tradeQty;
 
       if (tradeType === 'buy') {
-        // Check balance
         if ((userData.balance || 0) < totalCost) {
           alert('Insufficient balance!');
           setLoading(false);
           return;
         }
-        
-        // Update local portfolio state immediately
-        const existing = allPortfolio[currentStock.id];
-        const newQty = (existing?.quantity || 0) + tradeQty;
-        const newInvested = (existing?.quantity || 0) * (existing?.avgPrice || 0) + totalCost;
-        const newAvgPrice = newInvested / newQty;
-        
-        setLocalPortfolio(prev => ({
-          ...prev,
-          [currentStock.id]: { quantity: newQty, avgPrice: +newAvgPrice.toFixed(2) }
-        }));
-        
-        // Deduct balance locally
-        setUserData(prev => ({ ...prev, balance: (prev.balance || 0) - totalCost }));
+        const newQty = qty + tradeQty;
+        const newAvgPrice = +((qty * avgPrice + totalCost) / newQty).toFixed(2);
 
-        // ── MARKET IMPACT: BUY pushes price UP +1.2% ──
-        addLocalTrade(currentStock.id, 'buy');
-
-        // Sync to Firestore in background (non-blocking)
-        if (currentUser) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          const portRef = doc(db, 'portfolio', `${currentUser.uid}_${currentStock.id}`);
-          Promise.all([
-            updateDoc(userRef, { balance: increment(-totalCost) }).catch(() =>
-              setDoc(userRef, { balance: 100000 - totalCost }, { merge: true })
-            ),
-            setDoc(portRef, {
-              userId: currentUser.uid,
-              stockId: currentStock.id,
-              quantity: newQty,
-              avgPrice: +newAvgPrice.toFixed(2),
-              updatedAt: serverTimestamp()
-            }, { merge: true }),
-            addDoc(collection(db, 'transactions'), {
-              userId: currentUser.uid,
-              stockId: currentStock.id,
-              type: 'buy',
-              quantity: tradeQty,
-              price: price,
-              total: totalCost,
-              createdAt: serverTimestamp()
-            })
-          ]).catch(err => console.warn('[Firestore] Sync failed (non-fatal):', err.message));
-        }
+        // 1. Update portfolio in Firestore + context
+        updatePortfolio(currentStock.id, newQty, newAvgPrice);
+        // 2. Deduct balance in Firestore + context
+        updateBalance(-totalCost);
+        // 3. Record trade in Firestore (triggers global price update for all users)
+        recordTrade(currentStock.id, 'buy', tradeQty, price);
 
       } else {
-        // SELL
-        if (!holding || qty < tradeQty) {
+        if (qty < tradeQty) {
           alert('Not enough shares to sell!');
           setLoading(false);
           return;
         }
-
         const proceeds = price * tradeQty;
         const newQty = qty - tradeQty;
-        
-        setLocalPortfolio(prev => ({
-          ...prev,
-          [currentStock.id]: newQty <= 0
-            ? { quantity: 0, avgPrice: 0 }
-            : { quantity: newQty, avgPrice: avgPrice }
-        }));
 
-        setUserData(prev => ({ ...prev, balance: (prev.balance || 0) + proceeds }));
-
-        // ── MARKET IMPACT: SELL pushes price DOWN -0.9% ──
-        addLocalTrade(currentStock.id, 'sell');
-
-        if (currentUser) {
-          const userRef = doc(db, 'users', currentUser.uid);
-          const portRef = doc(db, 'portfolio', `${currentUser.uid}_${currentStock.id}`);
-          Promise.all([
-            updateDoc(userRef, { balance: increment(proceeds) }).catch(() => {}),
-            newQty <= 0
-              ? updateDoc(portRef, { quantity: 0 }).catch(() => {})
-              : setDoc(portRef, { quantity: newQty, avgPrice: avgPrice, updatedAt: serverTimestamp() }, { merge: true }),
-            addDoc(collection(db, 'transactions'), {
-              userId: currentUser.uid,
-              stockId: currentStock.id,
-              type: 'sell',
-              quantity: tradeQty,
-              price: price,
-              total: proceeds,
-              createdAt: serverTimestamp()
-            })
-          ]).catch(err => console.warn('[Firestore] Sync failed (non-fatal):', err.message));
-        }
+        updatePortfolio(currentStock.id, newQty, avgPrice);
+        updateBalance(+proceeds);
+        recordTrade(currentStock.id, 'sell', tradeQty, price);
       }
 
-      const msg = tradeType === 'buy' ? `✅ Bought ${tradeQty} share(s)!` : `✅ Sold ${tradeQty} share(s)!`;
+      const msg = tradeType === 'buy'
+        ? `✅ Bought ${tradeQty} share(s)!`
+        : `✅ Sold ${tradeQty} share(s)!`;
       setShowConfirm(msg);
-      setTimeout(() => {
-        setTradeModalOpen(false);
-        setShowConfirm('');
-      }, 900);
+      setTimeout(() => { setTradeModalOpen(false); setShowConfirm(''); }, 1200);
 
     } catch (err) {
       console.error('[Trade Error]', err);
