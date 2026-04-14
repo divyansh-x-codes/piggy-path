@@ -11,6 +11,7 @@ import Article from './screens/Article';
 import Bucket from './screens/Bucket';
 import IPO from './screens/IPO';
 import Watchlist from './screens/Watchlist';
+import Analysis from './screens/Analysis';
 import './index.css';
 
 const ScreenRenderer = () => {
@@ -29,6 +30,7 @@ const ScreenRenderer = () => {
       {currentScreen === 'bucket' && <Bucket />}
       {currentScreen === 'ipo' && <IPO />}
       {currentScreen === 'watchlist' && <Watchlist />}
+      {currentScreen === 'analysis' && <Analysis />}
     </div>
   );
 };

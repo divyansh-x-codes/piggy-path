@@ -146,6 +146,32 @@ const Home = () => {
         </div>
         {renderPortfolioCards()}
 
+        {/* Featured Research - KisanPay */}
+        <div onClick={() => goScreen('analysis')} style={{ margin: '0 20px 24px', background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)', borderRadius: 28, padding: 24, border: '1.5px solid black', position: 'relative', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+          <div style={{ position: 'absolute', top: -10, right: -10, background: '#22c55e', color: 'black', padding: '4px 12px', fontSize: 10, fontWeight: 900, borderRadius: '0 0 0 16px', textTransform: 'uppercase' }}>HOT ANALYSIS</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#004D40', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: 'white' }}>KS</div>
+            <div>
+              <div style={{ color: 'white', fontSize: 16, fontWeight: 800 }}>KisanPay Fintech</div>
+              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>Deep Dive Research Report</div>
+            </div>
+          </div>
+          <p style={{ color: 'white', fontSize: 13, opacity: 0.9, lineHeight: 1.5, marginBottom: 16 }}>Best-in-class unit economics with 10.6x LTV/CAC. Rural micro-lending potential in 4 priority states.</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 800 }}>ARR</div>
+                <div style={{ fontSize: 13, color: 'white', fontWeight: 800 }}>₹74.4L</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 800 }}>AUM</div>
+                <div style={{ fontSize: 13, color: 'white', fontWeight: 800 }}>₹1.85Cr</div>
+              </div>
+            </div>
+            <div style={{ background: 'white', color: 'black', padding: '8px 16px', borderRadius: 50, fontSize: 12, fontWeight: 800 }}>Read Now</div>
+          </div>
+        </div>
+
         {/* News Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Market Pulse</span>
