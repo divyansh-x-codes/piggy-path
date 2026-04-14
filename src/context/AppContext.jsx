@@ -194,9 +194,10 @@ export const AppProvider = ({ children }) => {
   };
 
   // ─── UPDATE PORTFOLIO IN FIRESTORE + CONTEXT ─────────────────────────────────
-  // Called from StockDetail after buy/sell so it persists on refresh
   const updatePortfolio = (stockId, newQty, newAvgPrice) => {
-    // Update local state immediately
+    console.log(`[AppContext] updatePortfolio: ${stockId}, Qty: ${newQty}, Avg: ${newAvgPrice}`);
+    
+    // Update local state immediately (Optimistic UI)
     setPortfolio(prev => ({
       ...prev,
       [stockId]: newQty <= 0
@@ -207,33 +208,42 @@ export const AppProvider = ({ children }) => {
     // Persist to Firestore
     if (currentUser) {
       const portRef = doc(db, 'portfolio', `${currentUser.uid}_${stockId}`);
-      setDoc(portRef, {
+      return setDoc(portRef, {
         userId: currentUser.uid,
         stockId,
         quantity: newQty,
         avgPrice: newAvgPrice,
         updatedAt: serverTimestamp()
-      }, { merge: true }).catch(err =>
-        console.warn('[Portfolio] Firestore sync failed:', err.message)
-      );
+      }, { merge: true }).catch(err => {
+        console.error('[Portfolio] Firestore sync failed:', err.message);
+        throw err; // Bubbling up to caller
+      });
     }
+    return Promise.resolve();
   };
 
   // ─── UPDATE BALANCE IN FIRESTORE + CONTEXT ───────────────────────────────────
   const updateBalance = (delta) => {
+    console.log(`[AppContext] updateBalance delta: ${delta}`);
     setUserData(prev => ({ ...prev, balance: (prev.balance || 0) + delta }));
+    
     if (currentUser) {
       const userRef = doc(db, 'users', currentUser.uid);
-      updateDoc(userRef, { balance: increment(delta) }).catch(() =>
-        setDoc(userRef, { balance: 100000 + delta }, { merge: true })
-      );
+      return updateDoc(userRef, { balance: increment(delta) }).catch(err => {
+        console.error('[Balance] Update failed:', err.message);
+        // Fallback if updateDoc fails (doc might not exist)
+        return setDoc(userRef, { balance: 100000 + delta }, { merge: true });
+      });
     }
+    return Promise.resolve();
   };
 
   // ─── RECORD TRADE IN FIRESTORE ───────────────────────────────────────────────
   const recordTrade = (stockId, type, qty, price) => {
-    if (!currentUser) return;
-    addDoc(collection(db, 'transactions'), {
+    console.log(`[AppContext] recordTrade: ${stockId}, ${type}, ${qty} @ ${price}`);
+    if (!currentUser) return Promise.resolve();
+    
+    return addDoc(collection(db, 'transactions'), {
       userId: currentUser.uid,
       stockId,
       type,
@@ -241,7 +251,10 @@ export const AppProvider = ({ children }) => {
       price,
       total: price * qty,
       createdAt: serverTimestamp()
-    }).catch(err => console.warn('[Trade] Record failed:', err.message));
+    }).catch(err => {
+      console.error('[Trade] Record failed:', err.message);
+      throw err;
+    });
   };
 
   const openStockDetail = (stockId) => {

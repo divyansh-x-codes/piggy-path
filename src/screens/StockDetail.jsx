@@ -118,33 +118,40 @@ const StockDetail = () => {
 
       if (tradeType === 'buy') {
         if ((userData.balance || 0) < totalCost) {
-          alert('Insufficient balance!');
+          alert(`Insufficient balance! You need ₹${totalCost.toLocaleString()} but have ₹${(userData.balance || 0).toLocaleString()}`);
           setLoading(false);
           return;
         }
+
         const newQty = qty + tradeQty;
-        const newAvgPrice = +((qty * avgPrice + totalCost) / newQty).toFixed(2);
+        // Average price calculation with strict numeric check
+        const newAvgPrice = qty > 0 
+          ? +((qty * avgPrice + totalCost) / newQty).toFixed(2)
+          : +price.toFixed(2);
 
         // 1. Update portfolio in Firestore + context
-        updatePortfolio(currentStock.id, newQty, newAvgPrice);
+        await updatePortfolio(currentStock.id, newQty, newAvgPrice);
         // 2. Deduct balance in Firestore + context
-        updateBalance(-totalCost);
+        await updateBalance(-totalCost);
         // 3. Record trade in Firestore (triggers global price update for all users)
-        recordTrade(currentStock.id, 'buy', tradeQty, price);
+        await recordTrade(currentStock.id, 'buy', tradeQty, price);
 
       } else {
         if (qty < tradeQty) {
-          alert('Not enough shares to sell!');
+          alert(`Not enough shares! You have ${qty} but want to sell ${tradeQty}`);
           setLoading(false);
           return;
         }
         const proceeds = price * tradeQty;
         const newQty = qty - tradeQty;
 
-        updatePortfolio(currentStock.id, newQty, avgPrice);
-        updateBalance(+proceeds);
-        recordTrade(currentStock.id, 'sell', tradeQty, price);
+        await updatePortfolio(currentStock.id, newQty, avgPrice);
+        await updateBalance(+proceeds);
+        await recordTrade(currentStock.id, 'sell', tradeQty, price);
       }
+
+      // Add a slight delay for better UX and to ensure state propagates
+      await new Promise(r => setTimeout(r, 800));
 
       const msg = tradeType === 'buy'
         ? `✅ Bought ${tradeQty} share(s)!`
@@ -154,7 +161,7 @@ const StockDetail = () => {
 
     } catch (err) {
       console.error('[Trade Error]', err);
-      alert(err.message || 'Trade failed. Try again.');
+      alert('Trade failed: ' + (err.message || 'Please check your connection and try again.'));
     }
     setLoading(false);
   };
