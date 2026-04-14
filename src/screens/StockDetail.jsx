@@ -234,6 +234,33 @@ const StockDetail = () => {
           <button onClick={() => goScreen('news')} style={{ flex: 1, padding: '15px 0', borderRadius: 50, background: 'white', color: 'black', fontWeight: 700, fontSize: 15, border: '1px solid #e5e7eb', cursor: 'pointer' }}>News</button>
         </div>
 
+        {/* PREMIUM RESEARCH BUTTON */}
+        {RESEARCH_REPORTS[currentStock.id] && (
+          <div style={{ margin: '0 16px 20px' }}>
+            <button 
+              onClick={() => goScreen('analysis')}
+              style={{ 
+                width: '100%', padding: '16px', borderRadius: 20, 
+                background: 'linear-gradient(90deg, #121212 0%, #1a1a1a 100%)', 
+                border: '1px solid rgba(124, 58, 237, 0.3)', color: 'white', 
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ background: '#7C3AED', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800 }}>Deep Dive Research</div>
+                  <div style={{ fontSize: 10, opacity: 0.6, fontWeight: 600 }}>Institutional Analysis Report</div>
+                </div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+        )}
+
         {/* Tabs */}
         <div style={{ margin: '0 16px 20px', background: '#f3f4f6', borderRadius: 50, padding: 4, display: 'flex' }}>
           {['overview', 'fundamentals'].map(t => (
