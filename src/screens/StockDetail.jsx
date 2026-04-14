@@ -26,18 +26,27 @@ function getPriceHistory(stock, range, trades = []) {
     base += base * (rng() * 0.04 - 0.018);
     hist.push(+base.toFixed(2));
   }
-  // Apply trade impacts (exact HTML logic)
+  // Apply trade impacts (synchronized with getPrice logic)
   let runPrice = hist[hist.length - 1];
   trades.forEach((t, ti) => {
     const idx = Math.max(pts - trades.length + ti, 0);
     const type = t.type || t.tradeType;
-    const delta = type === 'buy' ? runPrice * 0.015 : -(runPrice * 0.01);
+    const qty = t.quantity || 1;
+    
+    let delta;
+    if (type === 'buy') {
+      const impact = 0.012 + (qty * 0.0001);
+      delta = runPrice * Math.min(impact, 0.15);
+    } else {
+      const impact = 0.009 + (qty * 0.00008);
+      delta = -(runPrice * Math.min(impact, 0.15));
+    }
+
     runPrice += delta;
     for (let j = idx; j < pts; j++) {
       hist[j] = +(hist[j] + delta * (j - idx + 1) / pts).toFixed(2);
     }
   });
-  hist.push(stock.basePrice);
   return hist;
 }
 

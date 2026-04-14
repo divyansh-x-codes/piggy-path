@@ -50,12 +50,23 @@ export const AppProvider = ({ children }) => {
 
   // ─── GLOBAL TRADES LISTENER — ALL users, ALL stocks ──────────────────────────
   useEffect(() => {
-    const q = query(collection(db, 'transactions'), orderBy('createdAt', 'asc'), limit(500));
+    // REMOVED orderBy('createdAt') to allow instant local updates (latency compensation)
+    const q = query(collection(db, 'transactions'), limit(500));
     const unsub = onSnapshot(q, (snap) => {
-      setGlobalTrades(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const rawTrades = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort locally so we don't hide docs with pending server timestamps
+      const sorted = rawTrades.sort((a, b) => {
+        const tA = a.createdAt?.toMillis() || Date.now();
+        const tB = b.createdAt?.toMillis() || Date.now();
+        return tA - tB;
+      });
+      setGlobalTrades(sorted);
     }, (err) => console.warn('[GlobalTrades] Error:', err.message));
     return () => unsub();
   }, []);
+
+  // ─── AUTH LISTENER — HARDENED WITH PERSISTENCE ────────────────────────────────
+  // ... (lines omitted for brevity, keeping the existing auth listener logic)
 
   // ─── AUTH LISTENER — HARDENED WITH PERSISTENCE ────────────────────────────────
   useEffect(() => {
@@ -173,17 +184,23 @@ export const AppProvider = ({ children }) => {
   };
 
   // ─── GLOBAL PRICE = basePrice + impact of ALL users' trades ──────────────────
-  // BUY  → +1.2% per trade (price * 1.012)
-  // SELL → -0.9% per trade (price * 0.991)
-  // Uses globalTrades so ALL users see the SAME price
+  // Price Impact = Base Impact (1.2%) + Liquidity Factor (0.01% per share)
   const getPrice = (s) => {
     if (!s) return 0;
     let price = marketPrices[s.id] || s.basePrice;
     const stockTrades = globalTrades.filter(t => t.stockId === s.id);
+    
     stockTrades.forEach(t => {
       const type = t.type || t.tradeType;
-      if (type === 'buy')       price = +(price * 1.012).toFixed(2);
-      else if (type === 'sell') price = +(price * 0.991).toFixed(2);
+      const qty = t.quantity || 1;
+      
+      if (type === 'buy') {
+        const impact = 1.012 + (qty * 0.0001); // 1.2% + 0.01% per share
+        price = +(price * Math.min(impact, 1.15)).toFixed(2); // Cap single trade impact at 15%
+      } else if (type === 'sell') {
+        const impact = 0.991 - (qty * 0.00008); // -0.9% - 0.008% per share
+        price = +(price * Math.max(impact, 0.85)).toFixed(2); // Floor single trade impact at -15%
+      }
     });
     return price;
   };
