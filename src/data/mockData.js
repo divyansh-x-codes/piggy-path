@@ -24,8 +24,11 @@ export const STOCKS = [
 ];
 
 export const NEWS = [
-  { id: 1, cat: 'Trending', stock: 'Microsoft', ticker: 'MSFT', title: 'Why We Should Buy Microsoft Now', body: 'Analysts bullish on Microsoft Azure cloud business.', change: '+2.5%' },
-  { id: 'kspay-report', cat: 'Analysis', stock: 'KisanPay', ticker: 'KSPAY', title: 'Deep Dive: KisanPay Fintech', body: 'A detailed look at rural micro-lending potential.', change: 'Featured' },
+  { id: 1, cat: 'Trending', stock: 'Microsoft', ticker: 'MSFT', title: 'Why We Should Buy Microsoft Now', body: 'Analysts bullish on Microsoft Azure cloud business amid strong Q4 earnings. The company reported record revenue growth driven by AI services.', change: '+2.5%' },
+  { id: 2, cat: 'IT News', stock: 'TCS', ticker: 'TCS', title: 'TCS Wins $500M Deal in Europe', body: 'TCS secured a major multi-year contract to modernize banking infrastructure for a leading European financial institution.', change: '+1.9%' },
+  { id: 3, cat: 'Healthcare', stock: 'Infosys', ticker: 'INFY', title: 'Infosys Partners with NHS for Digital Transformation', body: 'Infosys announced a strategic partnership with UK\'s National Health Service to accelerate digital transformation across hospitals.', change: '-0.5%' },
+  { id: 4, cat: 'Gov News', stock: 'Reliance', ticker: 'RIL', title: 'Government Boosts Renewable Energy Policy', body: 'New government policy on green hydrogen production expected to benefit Reliance Industries significantly as it expands in clean energy.', change: '+3.2%' },
+  { id: 'kspay-report', cat: 'Analysis', stock: 'KisanPay', ticker: 'KSPAY', title: 'Deep Dive: KisanPay Fintech', body: 'A detailed look at rural micro-lending potential with best-in-class unit economics.', change: 'Featured' },
 ];
 
 export const RESEARCH_REPORTS = {
@@ -140,11 +143,107 @@ export const RESEARCH_REPORTS = {
       { label: '2025E', val1: 85, val2: 65, label1: 'CLOUD', label2: 'NET' },
       { label: '2026E', val1: 100, val2: 85, label1: 'CLOUD', label2: 'NET' },
     ]
+  },
+  aapl: {
+    price: 180.00,
+    mktCap: '3.0T',
+    tags: ['Consumer Giant', 'Ecosystem Lock-in', 'Services Growth', 'iPhone Dominance', 'Privacy Leader'],
+    metrics: [
+      { label: 'SERVICES REV', value: '$85B', sub: '+12% YoY growth' },
+      { label: 'ACTIVE DEVICES', value: '2.2B', sub: 'Growing install base' },
+      { label: 'CASH ON HAND', value: '$162B', sub: 'Massive buyback power' },
+      { label: 'GROSS MARGIN', value: '45.2%', sub: 'Record high for hardware' }
+    ],
+    quantScore: {
+      total: 88,
+      grade: 'A',
+      subScores: { ecosystem: 98, hardware: 85, services: 92, margins: 90, valuation: 68, brand: 99 }
+    },
+    rating: { status: 'HOLD', conviction: 3.2, bull: 225, base: 190, bear: 165, targetRange: '₹165 – ₹225' },
+    swot: {
+      strengths: ['Ultimate brand loyalty', 'High-margin Services segment', 'Vertical integration of chips/OS'],
+      weaknesses: ['iPhone concentration risk', 'China market headwinds', 'App Store regulatory pressure'],
+      opportunities: ['Vision Pro spatial computing', 'AI-integrated iOS 18', 'Health-tech expansion'],
+      threats: ['Geopolitical supply chain risk', 'EU sideloading mandates', 'Competitive Android AI phones']
+    },
+    traction: [{ label: 'iPhones', value: '1.4B' }, { label: 'Subscribers', value: '1B+' }],
+    projections: [
+      { label: '2023', val1: 30, val2: 15, label1: 'SRV', label2: 'NET' },
+      { label: '2024E', val1: 40, val2: 25, label1: 'SRV', label2: 'NET' },
+      { label: '2025E', val1: 55, val2: 40, label1: 'SRV', label2: 'NET' },
+    ]
+  },
+  reliance: {
+    price: 2890,
+    mktCap: '19.5L Cr',
+    tags: ['Conglomerate', 'Energy Giant', 'Retail Leader', 'Jio Digital', 'Green Energy Pivot'],
+    metrics: [
+      { label: 'JIO ARPU', value: '₹181.7', sub: 'Strong data growth' },
+      { label: 'RETAIL EBITDA', value: '₹23K Cr', sub: 'Expanding footprint' },
+      { label: 'O2C MARGINS', value: '18.4%', sub: 'Stable refining spread' }
+    ],
+    quantScore: {
+      total: 82,
+      grade: 'A-',
+      subScores: { digitalMoat: 94, retailScale: 90, energyPivot: 75, leverage: 68 }
+    },
+    rating: { status: 'BUY', conviction: 4.1, bull: 3400, base: 3100, bear: 2600, targetRange: '₹2600 – ₹3400' },
+    swot: {
+      strengths: ['Dominant market position', 'Jio digital ecosystem', 'Executing retail expansion'],
+      weaknesses: ['High CAPEX requirements', 'Debt levels from expansion', 'O2C volatility'],
+      opportunities: ['5G monetization', 'Green Hydrogen plans', 'Reliance Retail IPO'],
+      threats: ['Regulatory policy changes', 'Oil price fluctuations', 'Intense telecom competition']
+    },
+    traction: [{ label: 'Jio Users', value: '470M' }, { label: 'Retail Stores', value: '18K+' }],
+    projections: [
+      { label: '2023', val1: 20, val2: 10, label1: 'JIO', label2: 'RET' },
+      { label: '2024E', val1: 35, val2: 20, label1: 'JIO', label2: 'RET' },
+      { label: '2025E', val1: 50, val2: 35, label1: 'JIO', label2: 'RET' },
+    ]
+  },
+  tcs: {
+    price: 3520,
+    mktCap: '12.8L Cr',
+    tags: ['IT Services', 'Dividend King', 'Digital Transformation', 'Tata Trust', 'High Retention'],
+    metrics: [
+      { label: 'ORDER BOOK', value: '$8.1B', sub: 'Robust deal pipeline' },
+      { label: 'ATTRITION', value: '13.3%', sub: 'Industry-best retention' },
+      { label: 'EBIT MARGIN', value: '25.0%', sub: 'Resilient profitability' }
+    ],
+    quantScore: {
+      total: 85,
+      grade: 'A',
+      subScores: { delivery: 95, clients: 90, talent: 88, dividend: 92, valuation: 72 }
+    },
+    rating: { status: 'ACCUMULATE', conviction: 3.8, bull: 4200, base: 3850, bear: 3300, targetRange: '₹3300 – ₹4200' },
+    swot: {
+      strengths: ['Massive global scale', 'Tata brand trust', 'Diversified vertical mix'],
+      weaknesses: ['Slow AI pivot vs rivals', 'US/EU tech spend slowdown', 'Labor cost inflation'],
+      opportunities: ['Cloud modernization cycle', 'GenAI implementation as-a-service', 'European expansion'],
+      threats: ['H-1B visa restrictions', 'Automation squeezing margins', 'Currency volatility']
+    },
+    traction: [{ label: 'Employees', value: '600K' }, { label: 'Top 500 Client', value: '42%' }],
+    projections: [
+      { label: '2023', val1: 25, val2: 12, label1: 'IT', label2: 'AI' },
+      { label: '2024E', val1: 40, val2: 28, label1: 'IT', label2: 'AI' },
+      { label: '2025E', val1: 60, val2: 55, label1: 'IT', label2: 'AI' },
+    ]
   }
 };
 
 export const IPO_DATA = {
-  current: [],
-  closed: [],
-  listed: []
+  current: [
+    { name: 'Megasoft - Pan HR Solution Ltd', date: 'Day 3 - 3:33pm', priceRange: '111-117', minInv: '1,40,400', minQty: '1200', status: 'current' }
+  ],
+  closed: [
+    { name: 'Bapplee Technologies Ltd', date: 'Day 5 - 5:00pm', issuePrice: '95-102', listPrice: '115', gain: '12', status: 'closed' },
+    { name: 'Denver Corp', date: 'Day 2 - 2:30pm', issuePrice: '210-220', listPrice: '240', gain: '10', status: 'closed' },
+    { name: 'FinVest Securities', date: 'Day 1 - 1:00pm', issuePrice: '75-80', listPrice: '88', gain: '10', status: 'closed' }
+  ],
+  listed: [
+    { name: 'TechPark Solutions', listPrice: '420', gain: '40' },
+    { name: 'GrowMore Finance', listPrice: '180', gain: '25' },
+    { name: 'SmartRetail India', listPrice: '320', gain: '18' },
+    { name: 'HealthFirst Ltd', listPrice: '275', gain: '15' }
+  ]
 };

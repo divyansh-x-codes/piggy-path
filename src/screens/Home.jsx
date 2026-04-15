@@ -1,12 +1,12 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
-import { STOCKS } from '../data/mockData';
+import { STOCKS, NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
 const Home = () => {
-  const { 
-    goScreen, portfolio, getPortfolioValue, userData, 
-    posts, fetchPosts, setCurrentStock, getPrice, openStockDetail 
+  const {
+    goScreen, portfolio, getPortfolioValue, userData,
+    setCurrentStock, getPrice, getChange, openStockDetail, forceSeed
   } = useAppContext();
   const portfolioValue = getPortfolioValue();
 
@@ -32,7 +32,9 @@ const Home = () => {
   };
 
   const renderPortfolioCards = () => {
-    const holdingIds = Object.keys(portfolio);
+    const holdings = portfolio.holdings || {};
+    const holdingIds = Object.keys(holdings).filter(id => holdings[id]?.qty > 0);
+    
     if (holdingIds.length === 0) {
       return (
         <div style={{ padding: '0 20px 20px' }}>
@@ -49,11 +51,11 @@ const Home = () => {
           const stock = STOCKS.find(s => s.id === id);
           if (!stock) return null;
           const price = getPrice(stock);
-          const h = portfolio[id];
-          const qty = h.quantity || h.qty || 0;
+          const h = holdings[id];
+          const qty = h.qty || 0;
+          const avgP = h.avgPrice || 0;
           const value = price * qty;
-          const isUp = price >= (h.avgPrice || stock.basePrice);
-          const change = h.avgPrice ? (((price - h.avgPrice) / h.avgPrice) * 100).toFixed(2) : '0.00';
+          const pnl = (price - avgP) * qty;
 
           return (
             <div key={id} onClick={() => openStockDetail(id)} style={{ minWidth: 160, background: '#6D28D9', borderRadius: 20, border: '1.5px solid black', padding: '14px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)' }}>
@@ -68,7 +70,7 @@ const Home = () => {
                 <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.5px', opacity: 0.8 }}>CURRENT VALUE</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 }}>
                   <div style={{ fontSize: 16, fontWeight: 800 }}>₹ {value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</div>
-                  <div style={{ fontSize: 10, color: Number(change) >= 0 ? '#4ade80' : '#f87171', fontWeight: 800 }}>{Number(change) >= 0 ? '▲' : '▼'}{Math.abs(change)}%</div>
+                  <div style={{ fontSize: 10, color: pnl >= 0 ? '#4ade80' : '#f87171', fontWeight: 800 }}>{pnl >= 0 ? '▲' : '▼'}₹{Math.abs(pnl).toFixed(0)}</div>
                 </div>
               </div>
             </div>
@@ -92,38 +94,50 @@ const Home = () => {
           <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>Search stocks, IPO...</span>
         </div>
 
-        <div style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', background: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z" /></svg>
+        <div onClick={async () => { 
+          try {
+            await forceSeed();
+            alert('🟢 Cloud Market Data Synchronized!');
+          } catch (e) {
+            alert('🔴 Sync Failed: Check Firestore rules.');
+          }
+        }} style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', background: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-        
-        {/* HERO CARD (Proper Logic) */}
+
+        {/* HERO CARD */}
         <div style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)', margin: 16, borderRadius: 24, padding: 24, color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
           <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: 'rgba(255,255,255,0.1)', borderRadius: '50%' }}></div>
+          <div style={{ position: 'absolute', top: 30, right: 20, width: 60, height: 60, background: 'var(--green)', borderRadius: '50%', opacity: .6 }}></div>
           <p style={{ fontSize: 13, opacity: 0.8, fontWeight: 600 }}>Hello {userData.name || 'Investor'} 👋</p>
-          <p style={{ fontSize: 11, opacity: 0.7, marginBottom: 20 }}>Welcome to your PiggyPath Dashboard</p>
+          <p style={{ fontSize: 11, opacity: 0.7, marginBottom: 20 }}>Welcome Back, Let's continue</p>
 
           <div style={{ display: 'flex', gap: 32, marginBottom: 20 }}>
             <div>
               <p style={{ fontSize: 10, opacity: 0.7, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.8px', marginBottom: 6 }}>Local Account</p>
-              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>₹ {Number(userData.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</h2>
+              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>
+                ₹ {(userData?.balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </h2>
             </div>
             <div style={{ width: 1, background: 'rgba(255,255,255,0.2)' }}></div>
             <div>
               <p style={{ fontSize: 10, opacity: 0.7, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.8px', marginBottom: 6 }}>Portfolio Value</p>
-              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>₹ {Number(getPortfolioValue()).toLocaleString(undefined, { maximumFractionDigits: 0 })}</h2>
+              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>
+                ₹ {Number(portfolioValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+              </h2>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
             <button style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Add Money</button>
-            <button style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Analytics</button>
+            <button style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>View Analytics</button>
           </div>
         </div>
 
-        {/* Shortcuts — emojis from piggypath_trading_app.html */}
+        {/* Shortcuts */}
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 16px 20px' }}>
           {[
             { id: 'stocks',    icon: '📈', label: 'Stocks'    },
@@ -140,99 +154,76 @@ const Home = () => {
           ))}
         </div>
 
+        {/* My Portfolio */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>My Portfolio</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED' }} onClick={() => goScreen('stocks')}>View all</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('stocks')}>View all</span>
         </div>
         {renderPortfolioCards()}
 
-        {/* Featured Research - KisanPay */}
-        <div onClick={() => goScreen('analysis')} style={{ margin: '0 20px 24px', background: 'linear-gradient(135deg, #1f2937 0%, #111827 100%)', borderRadius: 28, padding: 24, border: '1.5px solid black', position: 'relative', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-          <div style={{ position: 'absolute', top: -10, right: -10, background: '#22c55e', color: 'black', padding: '4px 12px', fontSize: 10, fontWeight: 900, borderRadius: '0 0 0 16px', textTransform: 'uppercase' }}>HOT ANALYSIS</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: '#004D40', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: 'white' }}>KS</div>
-            <div>
-              <div style={{ color: 'white', fontSize: 16, fontWeight: 800 }}>KisanPay Fintech</div>
-              <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600 }}>Deep Dive Research Report</div>
-            </div>
-          </div>
-          <p style={{ color: 'white', fontSize: 13, opacity: 0.9, lineHeight: 1.5, marginBottom: 16 }}>Best-in-class unit economics with 10.6x LTV/CAC. Rural micro-lending potential in 4 priority states.</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 12 }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 800 }}>ARR</div>
-                <div style={{ fontSize: 13, color: 'white', fontWeight: 800 }}>₹74.4L</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontWeight: 800 }}>AUM</div>
-                <div style={{ fontSize: 13, color: 'white', fontWeight: 800 }}>₹1.85Cr</div>
-              </div>
-            </div>
-            <div style={{ background: 'white', color: 'black', padding: '8px 16px', borderRadius: 50, fontSize: 12, fontWeight: 800 }}>Read Now</div>
-          </div>
-        </div>
-
-        {/* News Section */}
+        {/* News Section — using static NEWS data from mockData */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Market Pulse</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED' }} onClick={fetchPosts}>Refresh</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>News</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('news')}>View all</span>
         </div>
-
-        {posts.length === 0 ? (
-          <div style={{ margin: '0 20px', padding: 24, textAlign: 'center', background: 'white', borderRadius: 24, border: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 14, color: '#9ca3af', margin: 0 }}>No updates in your cluster yet.</p>
-          </div>
-        ) : (
-          posts.slice(0, 3).map(post => (
-            <div key={post.id} onClick={() => { 
-                const s = STOCKS.find(s => s.id === post.stockId);
-                if (s) setCurrentStock(s);
-                goScreen('article'); 
-              }} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 24, padding: 20, margin: '0 20px 12px 20px', cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
-               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                 <div style={{ fontSize: 11, fontWeight: 800, color: '#7C3AED' }}>{post.user?.name}</div>
-                 <div style={{ fontSize: 10, color: '#9ca3af' }}>{new Date(post.createdAt).toLocaleDateString()}</div>
-               </div>
-               <h3 style={{ fontSize: 15, fontWeight: 800, margin: '0 0 6px', color: 'black', lineHeight: 1.3 }}>{post.title}</h3>
-               <p style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.4, margin: '0 0 12px' }}>{post.content.substring(0, 85)}...</p>
-               
-               <div style={{ display: 'flex', gap: 16 }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                   <span style={{ fontSize: 12 }}>{post.isLiked ? '❤️' : '🤍'}</span>
-                   <span style={{ fontSize: 10, fontWeight: 700 }}>{post.likeCount}</span>
-                 </div>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                   <span style={{ fontSize: 12 }}>💬</span>
-                   <span style={{ fontSize: 10, fontWeight: 700 }}>{post.commentCount}</span>
-                 </div>
-               </div>
+        <div style={{ padding: '0 20px' }}>
+          {NEWS.slice(0, 2).map(n => (
+            <div key={n.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => goScreen('news')}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ width: 36, height: 36, background: 'var(--purple-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--purple)' }}>{n.stock[0]}</div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{n.stock}</div>
+                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{n.ticker}</div>
+                  </div>
+                </div>
+                <span className={`tag ${n.change.startsWith('+') ? 'tag-green' : n.change.startsWith('-') ? 'tag-red' : 'tag-green'}`}>{n.change}</span>
+              </div>
+              <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{n.title}</p>
+              <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body.substring(0, 80)}...</p>
             </div>
-          ))
-        )}
+          ))}
+        </div>
 
         {/* Trending Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', marginTop: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Trending</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED' }} onClick={() => goScreen('stocks')}>View all</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('stocks')}>View all</span>
         </div>
         <div className="scroll-row" style={{ padding: '0 20px 20px 20px', gap: 12 }}>
           {STOCKS.map(s => {
             const p = getPrice(s);
-            const isUp = p >= s.basePrice;
+            const chg = getChange(s);
+            const isUp = chg >= 0;
             return (
-              <div key={s.id} onClick={() => openStockDetail(s.id)} style={{ minWidth: 150, background: 'white', borderRadius: 24, border: '1.5px solid #e5e7eb', padding: '16px', flexShrink: 0, cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                  {renderLogo(s.logo || s.id)}
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 800 }}>{s.ticker}</div>
-                    <div style={{ fontSize: 10, opacity: 0.7, fontWeight: 600 }}>{s.name.substring(0, 8)}..</div>
-                  </div>
+              <div key={s.id} onClick={() => openStockDetail(s.id)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
+                <div className="stock-logo" style={{ color: s.color }}>{s.logo}</div>
+                <div style={{ color: 'white' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
+                  <div style={{ fontSize: 11, opacity: .7 }}>{s.ticker}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>₹ {p.toLocaleString()}</div>
+                  <div style={{ fontSize: 11, color: isUp ? '#86efac' : '#fca5a5' }}>{isUp ? '▲ +' : '▼ '}{Math.abs(chg).toFixed(2)}%</div>
                 </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800 }}>₹ {p.toLocaleString()}</div>
-                  <div style={{ fontSize: 10, color: isUp ? '#22c55e' : '#ef4444', fontWeight: 800, marginTop: 2 }}>
-                    {isUp ? '▲+' : '▼-'}{Math.abs(((p - s.basePrice) / s.basePrice) * 100).toFixed(2)}%
-                  </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* IT Sector */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>IT Sector</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }}>View all</span>
+        </div>
+        <div className="scroll-row" style={{ padding: '0 20px 20px 20px', gap: 12 }}>
+          {STOCKS.filter(s => s.sector === 'IT').map(s => {
+            const p = getPrice(s);
+            return (
+              <div key={s.id} onClick={() => openStockDetail(s.id)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
+                <div className="stock-logo" style={{ color: s.color }}>{s.logo}</div>
+                <div style={{ color: 'white' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
+                  <div style={{ fontSize: 11, opacity: .7 }}>{s.ticker}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>₹ {p.toLocaleString()}</div>
                 </div>
               </div>
             );

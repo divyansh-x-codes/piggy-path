@@ -2,53 +2,49 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Auth check helper
+
     function isSignedIn() {
       return request.auth != null;
     }
-    
-    // User profile: only own doc
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
-    
-    // Stocks: Everyone can read, only Admin/System can write (for now allow all in dev)
+
+    // USERS (Balance & Profile)
+    match /users/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // PORTFOLIO (User-specific holdings)
+    match /portfolios/{userId} {
+      allow read, write: if isSignedIn() && isOwner(userId);
+    }
+
+    // STOCKS (GLOBAL - Same for everyone)
     match /stocks/{stockId} {
       allow read: if true;
-      allow write: if isSignedIn();
-      
-      match /price_history/{pointId} {
-        allow read: if true;
-        allow write: if isSignedIn();
-      }
+
+      // ❌ block dangerous ops
+      allow delete: if false;
+      allow create: if false;
+
+      // ✅ controlled update only during transaction
+      allow update: if isSignedIn()
+        && request.resource.data.price is number
+        && request.resource.data.price > 0
+        && request.resource.data.price < 1000000
+        && request.resource.data.history is list
+        && request.resource.data.history.size() <= 100;
     }
-    
-    // Portfolio: Each doc has userId, restrict to own docs
-    match /portfolio/{holdingId} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
+
+    // IPO
+    match /ipo_orders/{orderId} {
+      allow read, write: if isSignedIn();
     }
-    
-    // Transactions: Same as portfolio
-    match /transactions/{transId} {
-      allow read, write: if isSignedIn() && (
-        resource == null || resource.data.userId == request.auth.uid
-      ) && (
-        request.resource == null || request.resource.data.userId == request.auth.uid
-      );
-    }
-    
-    // Posts & Social
+
+    // SOCIAL
     match /posts/{postId} {
-      allow read: if true;
-      allow write: if isSignedIn();
-    }
-    
-    match /likes/{likeId} {
       allow read: if true;
       allow write: if isSignedIn();
     }

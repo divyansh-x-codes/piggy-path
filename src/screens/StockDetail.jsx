@@ -1,65 +1,22 @@
 import React, { useState } from 'react';
 import { Line } from 'react-chartjs-2';
-import { 
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement, 
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
   LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
 import { useAppContext } from '../context/AppContext';
+import { STOCKS, RESEARCH_REPORTS } from '../data/mockData';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
-// ─── SEEDED PRNG: same chart every refresh, no random flickering ─────────────
-function seededRandom(seed) {
-  let s = seed;
-  return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
-}
-function getStockSeed(id) {
-  return id.split('').reduce((a, c) => a + c.charCodeAt(0), 0) * 137;
-}
-// Deterministic history — Same stock+range = same chart. Trade impacts on top.
-function getPriceHistory(stock, range, trades = []) {
-  const pts = range === '1d' ? 24 : range === '6m' ? 24 : range === '1y' ? 52 : 104;
-  const rng = seededRandom(getStockSeed(stock.id || 'x') + pts * 7);
-  let base = stock.basePrice * 0.8;
-  const hist = [];
-  for (let i = 0; i < pts; i++) {
-    base += base * (rng() * 0.04 - 0.018);
-    hist.push(+base.toFixed(2));
-  }
-  // Apply trade impacts (Step impact logic for clear visual moves)
-  let runPrice = hist[hist.length - 1];
-  trades.forEach((t, ti) => {
-    const idx = Math.max(pts - trades.length + ti, 0);
-    const type = t.type || t.tradeType;
-    const qty = t.quantity || 1;
-    
-    let delta;
-    if (type === 'buy') {
-      const impact = 0.012 + (qty * 0.0001);
-      delta = runPrice * Math.min(impact, 0.15);
-    } else {
-      const impact = 0.009 + (qty * 0.00008);
-      delta = -(runPrice * Math.min(impact, 0.15));
-    }
-
-    runPrice += delta;
-    // Apply full delta to all points from the trade index onwards
-    for (let j = idx; j < pts; j++) {
-      hist[j] = +(hist[j] + delta).toFixed(2);
-    }
-  });
-
-  return hist;
-}
-
 const StockDetail = () => {
   const {
-    currentStock, goBack, goScreen, tradeHistory, globalTrades, portfolio,
-    getPrice, marketHistory, userData, currentUser,
-    updatePortfolio, updateBalance, recordTrade
+    currentStock, goBack, goScreen, portfolio,
+    getPrice, getChange, getPriceHistory, userData,
+    confirmTrade
   } = useAppContext();
 
-  const [range, setRange] = useState('1d');
+  const [range, setRange] = useState('2y');
   const [tab, setTab] = useState('overview');
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState('buy');
@@ -67,41 +24,39 @@ const StockDetail = () => {
   const [showConfirm, setShowConfirm] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Chart: use globalTrades so ALL users see the SAME graph shape
-  const stockTrades = globalTrades.filter(t => t.stockId === currentStock?.id);
-  const chartHistory = marketHistory[currentStock?.id]?.length > 5
-    ? marketHistory[currentStock?.id]
-    : getPriceHistory(currentStock || { basePrice: 100, id: 'x' }, range, stockTrades);
-
   if (!currentStock) return null;
 
+  const sid = (currentStock.id || '').toLowerCase();
   const price = getPrice(currentStock);
-  const isUp = chartHistory[chartHistory.length - 1] >= chartHistory[0];
-  const color = isUp ? '#22C55E' : '#EF4444';
+  const chgPercent = getChange(currentStock);
+
+  // Chart data from local getPriceHistory (seeded PRNG + trade overlay)
+  const chartHistory = getPriceHistory(currentStock.id, range);
+
   const startPrice = chartHistory[0] || price;
-  const chgPercent = (((price - startPrice) / startPrice) * 100).toFixed(2);
+  const isUp = price >= startPrice;
+  const color = isUp ? '#22C55E' : '#EF4444';
 
   const chartData = {
     labels: chartHistory.map(() => ''),
     datasets: [{
       data: chartHistory,
       borderColor: color,
-      borderWidth: 2.5,
-      tension: 0.4,
+      borderWidth: 2,
+      tension: 0.35,
       pointRadius: 0,
-      pointHoverRadius: 4,
       fill: true,
-      backgroundColor: color + '18',
+      backgroundColor: color + '12',
     }]
   };
 
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 300 },
+    animation: { duration: 1000, easing: 'easeInOutQuart' },
     plugins: {
       legend: { display: false },
-      tooltip: { 
+      tooltip: {
         mode: 'index', intersect: false,
         callbacks: { label: c => `₹ ${c.raw.toLocaleString()}` }
       }
@@ -112,74 +67,40 @@ const StockDetail = () => {
     }
   };
 
-  // Portfolio from Firestore (via context) — persists across refresh
-  const holding = portfolio[currentStock.id];
-  const qty = holding?.quantity || 0;
-  const avgPrice = holding?.avgPrice || 0;
-  const invested = qty * avgPrice;
+  // Portfolio holdings from local state
+  const holding = (portfolio.holdings || {})[sid] || { qty: 0, avgPrice: 0 };
+  const qty = holding.qty || 0;
+  const avgPrice = holding.avgPrice || 0;
+  const invested = avgPrice * qty;
   const currValue = price * qty;
   const pnl = currValue - invested;
 
-  // ─── TRADE HANDLER — all state goes to Firestore via context ────────────────
+  // ─── TRADE HANDLER — Real-time Firestore Transaction ────────
   const handleConfirmTrade = async () => {
-    if (loading) return;
     setLoading(true);
     try {
-      const totalCost = price * tradeQty;
-
-      if (tradeType === 'buy') {
-        if ((userData.balance || 0) < totalCost) {
-          alert(`Insufficient balance! You need ₹${totalCost.toLocaleString()} but have ₹${(userData.balance || 0).toLocaleString()}`);
-          setLoading(false);
-          return;
-        }
-
-        const newQty = qty + tradeQty;
-        // Average price calculation with strict numeric check
-        const newAvgPrice = qty > 0 
-          ? +((qty * avgPrice + totalCost) / newQty).toFixed(2)
-          : +price.toFixed(2);
-
-        // 1. Update portfolio in Firestore + context
-        await updatePortfolio(currentStock.id, newQty, newAvgPrice);
-        // 2. Deduct balance in Firestore + context
-        await updateBalance(-totalCost);
-        // 3. Record trade in Firestore (triggers global price update for all users)
-        await recordTrade(currentStock.id, 'buy', tradeQty, price);
-
-      } else {
-        if (qty < tradeQty) {
-          alert(`Not enough shares! You have ${qty} but want to sell ${tradeQty}`);
-          setLoading(false);
-          return;
-        }
-        const proceeds = price * tradeQty;
-        const newQty = qty - tradeQty;
-
-        await updatePortfolio(currentStock.id, newQty, avgPrice);
-        await updateBalance(+proceeds);
-        await recordTrade(currentStock.id, 'sell', tradeQty, price);
+      const result = await confirmTrade(tradeType, currentStock.id, tradeQty);
+      if (!result.success) {
+        alert(result.error);
+        setLoading(false);
+        return;
       }
 
-      // Add a slight delay for better UX and to ensure state propagates
-      await new Promise(r => setTimeout(r, 800));
-
       const msg = tradeType === 'buy'
-        ? `✅ Bought ${tradeQty} share(s)!`
-        : `✅ Sold ${tradeQty} share(s)!`;
+        ? `✅ Bought ${tradeQty} share(s) of ${currentStock.name}!`
+        : `✅ Sold ${tradeQty} share(s) of ${currentStock.name}!`;
       setShowConfirm(msg);
       setTimeout(() => { setTradeModalOpen(false); setShowConfirm(''); }, 1200);
-
     } catch (err) {
-      console.error('[Trade Error]', err);
-      alert('Trade failed: ' + (err.message || 'Please check your connection and try again.'));
+      alert('Trade failed: ' + err.toString());
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'white' }}>
         <div onClick={goBack} style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
@@ -195,16 +116,16 @@ const StockDetail = () => {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
-        
+
         {/* Price Card with Graph */}
         <div style={{ margin: '0 16px 20px', border: '1.5px solid var(--border)', borderRadius: 24, padding: '24px 0 16px', overflow: 'hidden' }}>
-          
+
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <div style={{ width: 50, height: 50, borderRadius: 14, background: (currentStock.color || '#7C3AED') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: currentStock.color || '#7C3AED' }}>
               {typeof currentStock.logo === 'string' && currentStock.logo.length <= 3 ? currentStock.logo : currentStock.name.substring(0, 2).toUpperCase()}
             </div>
           </div>
-          
+
           <p style={{ fontFamily: "'Syne', sans-serif", fontWeight: 700, fontSize: 32, textAlign: 'center', marginBottom: 4, color: 'black' }}>
             ₹ {price.toLocaleString()}
           </p>
@@ -212,14 +133,14 @@ const StockDetail = () => {
             {isUp ? '▲ +' : '▼ '}{Math.abs(Number(chgPercent)).toFixed(2)}%
           </div>
 
-          {/* THE GRAPH — using getPriceHistory from HTML */}
+          {/* THE GRAPH */}
           <div style={{ position: 'relative', width: '100%', height: 160, marginBottom: 12 }}>
             <Line key={`${currentStock.id}-${range}`} data={chartData} options={chartOptions} />
           </div>
 
           {/* Range Buttons */}
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '0 16px' }}>
-            {[['1d', 'Current'], ['6m', '6 MON'], ['1y', '12 MON']].map(([r, label]) => (
+            {[['6m', '6 MON'], ['1y', '12 MON'], ['2y', '2 YEAR']].map(([r, label]) => (
               <button key={r} onClick={() => setRange(r)} style={{ padding: '8px 18px', borderRadius: 50, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: range === r ? 'none' : '1px solid #e5e7eb', background: range === r ? '#7C3AED' : 'white', color: range === r ? 'white' : 'black' }}>
                 {label}
               </button>
@@ -237,12 +158,12 @@ const StockDetail = () => {
         {/* PREMIUM RESEARCH BUTTON */}
         {RESEARCH_REPORTS[currentStock.id] && (
           <div style={{ margin: '0 16px 20px' }}>
-            <button 
+            <button
               onClick={() => goScreen('analysis')}
-              style={{ 
-                width: '100%', padding: '16px', borderRadius: 20, 
-                background: 'linear-gradient(90deg, #121212 0%, #1a1a1a 100%)', 
-                border: '1px solid rgba(124, 58, 237, 0.3)', color: 'white', 
+              style={{
+                width: '100%', padding: '16px', borderRadius: 20,
+                background: 'linear-gradient(90deg, #121212 0%, #1a1a1a 100%)',
+                border: '1px solid rgba(124, 58, 237, 0.3)', color: 'white',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
               }}
@@ -344,22 +265,22 @@ const StockDetail = () => {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={{ background: 'white', borderRadius: '28px 28px 0 0', padding: '28px 24px 36px', width: '100%', maxWidth: 500 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h3 style={{ fontWeight: 800, fontSize: 20, color: 'black', margin: 0 }}>{tradeType === 'buy' ? 'Buy Asset' : 'Sell Position'}</h3>
+              <h3 style={{ fontWeight: 800, fontSize: 20, color: 'black', margin: 0 }}>{tradeType === 'buy' ? 'Buy ' : 'Sell '}{currentStock.name}</h3>
               <div onClick={() => setTradeModalOpen(false)} style={{ width: 40, height: 40, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontWeight: 800, fontSize: 16 }}>✕</div>
             </div>
-            
+
             <div style={{ textAlign: 'center', marginBottom: 28 }}>
-              <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600, marginBottom: 4 }}>Market Execution Price</div>
+              <div style={{ fontSize: 13, color: '#6b7280', fontWeight: 600, marginBottom: 4 }}>Current Price</div>
               <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 34, color: 'black' }}>₹ {price.toLocaleString()}</div>
             </div>
-            
+
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'black', marginBottom: 8, display: 'block' }}>Quantity Configuration</label>
+              <label style={{ fontSize: 13, fontWeight: 700, color: 'black', marginBottom: 8, display: 'block' }}>Quantity</label>
               <input type="number" value={tradeQty} min="1" onChange={(e) => setTradeQty(Number(e.target.value) || 1)} style={{ width: '100%', padding: '14px 18px', borderRadius: 14, border: '1px solid #e5e7eb', fontSize: 18, fontWeight: 700, boxSizing: 'border-box', background: '#f9fafb', outline: 'none' }} />
             </div>
-            
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6', marginBottom: 20 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Estimated Total</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Total</span>
               <span style={{ fontWeight: 800, fontSize: 18, color: 'black' }}>₹ {(price * tradeQty).toFixed(2)}</span>
             </div>
 
@@ -369,11 +290,33 @@ const StockDetail = () => {
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 800 }}>₹ {Number(userData.balance || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
               </div>
             )}
-            
-            <button onClick={handleConfirmTrade} disabled={loading} style={{ width: '100%', padding: 18, borderRadius: 50, background: loading ? '#9ca3af' : tradeType === 'buy' ? '#22c55e' : '#7C3AED', color: 'white', fontWeight: 800, fontSize: 16, border: 'none', cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? 'Processing...' : `Confirm ${tradeType === 'buy' ? 'Buy' : 'Sell'} Order`}
+
+            {tradeType === 'sell' && qty > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16, padding: '10px 14px', background: '#faf5ff', borderRadius: 12 }}>
+                <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>Shares Owned</span>
+                <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 800 }}>{qty} shares</span>
+              </div>
+            )}
+
+            <button 
+              disabled={!!showConfirm || loading}
+              onClick={handleConfirmTrade} 
+              style={{ 
+                width: '100%', 
+                padding: 18, 
+                borderRadius: 50, 
+                background: tradeType === 'buy' ? '#22c55e' : '#7C3AED', 
+                color: 'white', 
+                fontWeight: 800, 
+                fontSize: 16, 
+                border: 'none', 
+                cursor: (showConfirm || loading) ? 'not-allowed' : 'pointer',
+                opacity: (showConfirm || loading) ? 0.7 : 1
+              }}
+            >
+              {loading ? 'Processing...' : `Confirm ${tradeType === 'buy' ? 'Buy' : 'Sell'}`}
             </button>
-            
+
             {showConfirm && (
               <div style={{ textAlign: 'center', marginTop: 14, fontSize: 14, fontWeight: 800, color: tradeType === 'buy' ? '#22c55e' : '#7C3AED' }}>
                 {showConfirm}

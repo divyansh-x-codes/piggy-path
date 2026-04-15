@@ -4,7 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { STOCKS } from '../data/mockData';
 
 const Watchlist = () => {
-  const { watchlist, setWatchlist, getPrice, openStockDetail } = useAppContext();
+  const { watchlist, setWatchlist, getPrice, getChange, openStockDetail } = useAppContext();
 
   const removeWatchlist = (e, id) => {
     e.stopPropagation();
@@ -23,6 +23,7 @@ const Watchlist = () => {
             const s = STOCKS.find(x => x.id === id);
             if (!s) return null;
             const price = getPrice(s);
+            const chg = getChange(s);
             return (
               <div key={id} onClick={() => openStockDetail(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: s.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: s.color }}>{s.logo}</div>
@@ -32,7 +33,7 @@ const Watchlist = () => {
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>₹ {price.toLocaleString()}</div>
-                  <div className={`tag ${s.change >= 0 ? 'tag-green' : 'tag-red'}`}>{s.change >= 0 ? '▲ +' : '▼ '}{s.change}%</div>
+                  <div className={`tag ${chg >= 0 ? 'tag-green' : 'tag-red'}`}>{chg >= 0 ? '▲ +' : '▼ '}{Math.abs(chg).toFixed(2)}%</div>
                 </div>
                 <button 
                   onClick={(e) => removeWatchlist(e, s.id)} 

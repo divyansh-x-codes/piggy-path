@@ -4,15 +4,16 @@ import { BottomNav } from '../components/Shared';
 import { STOCKS } from '../data/mockData';
 
 const Profile = () => {
-  const { goScreen, userData, portfolio, tradeHistory, getPrice } = useAppContext();
+  const { goScreen, userData, portfolio, tradeHistory, getPrice, user } = useAppContext();
 
   // Calculate portfolio stats
-  const portfolioEntries = Object.entries(portfolio).filter(([, h]) => (h.quantity || 0) > 0);
-  const totalInvested = portfolioEntries.reduce((sum, [, h]) => sum + (h.quantity || 0) * (h.avgPrice || 0), 0);
+  const holdings = portfolio.holdings || {};
+  const portfolioEntries = Object.entries(holdings).filter(([, h]) => (h.qty || 0) > 0);
+  const totalInvested = portfolioEntries.reduce((sum, [, h]) => sum + ((h.qty || 0) * (h.avgPrice || 0)), 0);
   const totalCurrentValue = portfolioEntries.reduce((sum, [id, h]) => {
     const stock = STOCKS.find(s => s.id === id);
-    const price = stock ? getPrice(stock) : (h.avgPrice || 0);
-    return sum + price * (h.quantity || 0);
+    const price = stock ? getPrice(stock) : 0;
+    return sum + price * (h.qty || 0);
   }, 0);
   const totalPnL = totalCurrentValue - totalInvested;
   const pnlPercent = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(2) : '0.00';
@@ -30,10 +31,10 @@ const Profile = () => {
         {/* Name Block */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center' }}>
-            <span style={{ fontSize: 24, fontWeight: 700, color: 'black', letterSpacing: '0.2px' }}>Divyansh</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: 'black', letterSpacing: '0.2px' }}>{user?.displayName || 'Investor'}</span>
             <span style={{ fontSize: 9, marginTop: 4, marginLeft: 2, color: 'black', fontWeight: 600 }}>#546677</span>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'black', marginTop: -8, letterSpacing: '0.2px' }}>nav</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginTop: -4, letterSpacing: '0.2px', textTransform: 'lowercase' }}>{user?.email || 'piggyspark@fin.com'}</div>
         </div>
 
         {/* Hamburger Menu */}
@@ -48,16 +49,9 @@ const Profile = () => {
         <div style={{ margin: '0 20px', marginTop: 10, position: 'relative' }}>
           <div style={{ background: 'white', borderRadius: 32, border: '2.5px solid black', boxShadow: '0px 18px 40px rgba(0,0,0,0.3)', position: 'relative', overflow: 'hidden', minHeight: 280 }}>
 
-            {/* Avatar Video */}
-            <div style={{ position: 'absolute', right: 20, top: 20, bottom: 45, zIndex: 1, width: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <video src="/r.mp4" autoPlay loop muted playsInline style={{ maxWidth: '800%', maxHeight: '100%', objectFit: 'cover' }} />
-            </div>
-
-            {/* Edit Button */}
-            <div style={{ position: 'absolute', right: 28, bottom: 20, zIndex: 2 }}>
-              <div style={{ background: 'white', border: '1px solid transparent', borderRadius: 30, padding: '7px 26px', fontSize: 20, fontWeight: 700, color: 'black', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>
-                Edit
-              </div>
+            {/* Avatar Wrapper */}
+            <div style={{ position: 'absolute', right: 15, top: 20, bottom: 20, width: 150, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+              <video src="/r.mp4" autoPlay loop muted playsInline style={{ width: '100%', height: 'auto', objectFit: 'contain' }} />
             </div>
 
             {/* Left side Content Wrapper */}
@@ -65,30 +59,30 @@ const Profile = () => {
 
               {/* Level Box */}
               <div style={{ border: '1.5px solid #e2e8f0', borderRadius: 8, background: 'white', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 26, height: 26, background: '#fbbf24', border: '1.5px solid black', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 14 }}>7</div>
+                <div style={{ width: 26, height: 26, background: '#fbbf24', border: '1.5px solid black', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: 14 }}>0</div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: 'black' }}>Level 0</div>
                   <div style={{ fontSize: 9, color: 'var(--muted)', fontWeight: 600, marginTop: 1 }}>#546677</div>
                 </div>
               </div>
-
-              {/* Stats inline block */}
-              <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}><span style={{ color: '#8b5cf6', fontSize: 11 }}>⭐</span> 3500 XP</div>
-                <div style={{ fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4, color: '#eab308' }}>🔥 17-Day Streak</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'black', marginBottom: 4 }}>Hello Investor 👋</div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#64748b', fontStyle: 'italic', lineHeight: 1.4, marginBottom: 12, maxWidth: '90%' }}>
+                "{[
+                  "The best time to invest was yesterday. The second best time is now.",
+                  "Rule No. 1: Never lose money. Rule No. 2: Never forget rule No. 1.",
+                  "The stock market transfers money from the impatient to the patient.",
+                  "In investing, what is comfortable is rarely profitable.",
+                  "Risk comes from not knowing what you're doing."
+                ][Math.floor(Math.random() * 5)]}"
               </div>
+
 
               {/* Divider */}
               <div style={{ height: '1.5px', background: '#e2e8f0', width: '100%', marginBottom: 12 }}></div>
 
-              {/* Completion text */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, fontWeight: 600, color: 'black', marginBottom: 36 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="#22c55e"><circle cx="12" cy="12" r="12"></circle><path d="M17 8l-7 7-3-3" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none"></path></svg>
-                Completed 32 Levels
-              </div>
 
               {/* Social icons */}
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
                 </div>
@@ -135,14 +129,16 @@ const Profile = () => {
         {portfolioEntries.length > 0 && (
           <div style={{ margin: '16px 20px 0' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>My Holdings</div>
-            {portfolioEntries.map(([id, h]) => {
-              const stock = STOCKS.find(s => s.id === id);
-              if (!stock) return null;
-              const currPrice = getPrice(stock);
-              const currVal = currPrice * (h.quantity || 0);
-              const invested = (h.quantity || 0) * (h.avgPrice || 0);
-              const pnl = currVal - invested;
-              const isUp = pnl >= 0;
+              {portfolioEntries.map(([id, h]) => {
+                const stock = STOCKS.find(s => s.id === id);
+                if (!stock) return null;
+                const currPrice = getPrice(stock);
+                const qty = h.qty || 0;
+                const avgP = h.avgPrice || 0;
+                const inv = qty * avgP;
+                const currVal = currPrice * qty;
+                const pnl = currVal - inv;
+                const isUp = pnl >= 0;
               return (
                 <div key={id} onClick={() => goScreen('stock-detail')} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 20, padding: '16px', marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -152,7 +148,7 @@ const Profile = () => {
                       </div>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: 14 }}>{stock.name}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>{h.quantity} shares · avg ₹{(h.avgPrice || 0).toFixed(0)}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>{qty} shares · avg ₹{avgP.toFixed(0)}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
@@ -178,98 +174,6 @@ const Profile = () => {
             <div style={{ fontSize: 12, color: '#9ca3af' }}>Buy stocks to see your portfolio here</div>
           </div>
         )}
-
-        {/* MAY 2026 button */}
-        <div style={{ margin: '0 20px', marginTop: 16 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', border: '1px solid black', borderRadius: 40, padding: '6px 14px', gap: 10, background: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="black"><path d="M15 18l-6-6 6-6z" /></svg>
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 600, letterSpacing: '0.5px' }}>MAY 2026</span>
-          </div>
-        </div>
-
-        {/* Calendar Grid Card */}
-        <div style={{ margin: '0 20px', marginTop: 16 }}>
-          <div style={{ background: 'white', border: '2px solid black', borderRadius: 24, padding: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontSize: 11, fontWeight: 500, color: 'black', marginBottom: 16 }}>
-              <div>SUN</div><div>MON</div><div>THU</div><div>WED</div><div>THR</div><div>FRI</div><div>SAT</div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '10px 8px' }}>
-              {/* Row 1 */}
-              <div></div><div></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-
-              {/* Row 2 */}
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-
-              {/* Row 3 */}
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-
-              {/* Row 4 */}
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-
-              {/* Row 5 */}
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#4ade80', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-              <div style={{ height: 16, background: '#8b5cf6', borderRadius: 20, boxShadow: '0px 2px 4px rgba(0,0,0,0.15)' }}></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Dashboard Card */}
-        <div style={{ margin: '0 20px', marginTop: 16 }}>
-          <div style={{ background: 'white', border: '2px solid black', borderRadius: 24, padding: '24px 20px 16px', position: 'relative' }}>
-
-            {/* Half Donut Container */}
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              {/* CSS Half Donut implementation */}
-              <div style={{ width: 140, height: 70, position: 'relative', overflow: 'hidden' }}>
-                <div style={{ width: 140, height: 140, borderRadius: '50%', background: 'conic-gradient(#6D28D9 0deg, #6D28D9 140deg, #e2e8f0 140deg, #e2e8f0 360deg)', position: 'absolute', top: 0, left: 0, transform: 'rotate(-90deg)' }}></div>
-                <div style={{ width: 90, height: 90, background: 'white', borderRadius: '50%', position: 'absolute', bottom: -45, left: 25, zIndex: 1 }}></div>
-              </div>
-            </div>
-
-            {/* Texts */}
-            <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.1, color: 'black', marginBottom: 8, letterSpacing: '-0.2px' }}>
-              Financial Journey<br />Completion
-            </div>
-
-            {/* Dashed line */}
-            <div style={{ borderTop: '1px dashed #94a3b8', margin: '12px 0' }}></div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-              <span style={{ fontWeight: 600, color: 'black' }}>↑ 28%</span>
-              <span style={{ color: 'var(--muted)', fontWeight: 500 }}>from last month</span>
-            </div>
-
-          </div>
-        </div>
 
       </div>
 

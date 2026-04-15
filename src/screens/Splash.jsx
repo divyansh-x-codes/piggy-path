@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useAppContext } from '../context/AppContext';
+import { db } from '../lib/firebase';
+import { doc, setDoc, collection, writeBatch } from 'firebase/firestore';
+import { STOCKS } from '../data/mockData';
 
 const Splash = () => {
+  const { goScreen } = useAppContext();
+
+  // Auto-navigate to auth after 1.8s (matching HTML behavior)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      goScreen('auth', false);
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [goScreen]);
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FAFAFA' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', fontFamily: "'Lora', serif", fontWeight: 800, fontSize: 62, letterSpacing: '1px', color: '#111' }}>
@@ -16,23 +30,6 @@ const Splash = () => {
         <span style={{ color: '#6D28D9' }}>.</span>
       </div>
       <p style={{ fontFamily: "'Lora', serif", color: 'var(--muted)', marginTop: 12, fontSize: 16, fontWeight: 600, letterSpacing: '1px' }}>Learn. Invest. Grow.</p>
-      
-      {/* Temporary Seed Button */}
-      <button 
-        onClick={async () => {
-          try {
-            const { seedStocks } = await import('../lib/seed');
-            await seedStocks();
-            alert('Firestore Stocks seeded successfully!');
-          } catch (e) {
-            console.error('[Seed Error]', e);
-            alert('Seeding failed. Check console.');
-          }
-        }}
-        style={{ marginTop: 40, padding: '10px 20px', borderRadius: 50, border: '1px solid black', background: 'white', cursor: 'pointer', fontWeight: 600 }}
-      >
-        Initialize Firestore Stocks
-      </button>
     </div>
   );
 };

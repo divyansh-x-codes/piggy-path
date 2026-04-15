@@ -7,18 +7,15 @@ import Stocks from './screens/Stocks';
 import StockDetail from './screens/StockDetail';
 import Profile from './screens/Profile';
 import News from './screens/News';
-import Article from './screens/Article';
 import Bucket from './screens/Bucket';
 import IPO from './screens/IPO';
 import Watchlist from './screens/Watchlist';
 import Analysis from './screens/Analysis';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 const ScreenRenderer = () => {
-  const { currentScreen, loading } = useAppContext();
-
-  // Show Splash as a top-level blocker while loading initial data
-  if (loading) return <Splash />;
+  const { currentScreen } = useAppContext();
 
   return (
     <div className="screen active" style={{ animation: 'none' }}>
@@ -29,24 +26,21 @@ const ScreenRenderer = () => {
       {currentScreen === 'stock-detail' && <StockDetail />}
       {currentScreen === 'profile' && <Profile />}
       {currentScreen === 'news' && <News />}
-      {currentScreen === 'article' && <Article />}
       {currentScreen === 'bucket' && <Bucket />}
       {currentScreen === 'ipo' && <IPO />}
       {currentScreen === 'watchlist' && <Watchlist />}
       {currentScreen === 'analysis' && <Analysis />}
-      {/* Fallback to Home if screen is unknown or missing */}
-      {!['splash', 'auth', 'home', 'stocks', 'stock-detail', 'profile', 'news', 'article', 'bucket', 'ipo', 'watchlist', 'analysis'].includes(currentScreen) && <Home />}
     </div>
   );
 };
 
 function App() {
   return (
-    <AppProvider>
-      <div id="root">
+    <ErrorBoundary>
+      <AppProvider>
         <ScreenRenderer />
-      </div>
-    </AppProvider>
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 
