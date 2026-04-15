@@ -1,18 +1,34 @@
 import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { RESEARCH_REPORTS } from '../data/mockData';
+import { RESEARCH_REPORTS, STOCKS } from '../data/mockData';
 
 const Analysis = () => {
-  const { goBack, currentStock } = useAppContext();
-  const d = RESEARCH_REPORTS[currentStock?.id] || RESEARCH_REPORTS['kspay']; // Fallback to kspay
+  const { stockId } = useParams();
+  const navigate = useNavigate();
+  const { getPrice } = useAppContext();
+
+  // Find stock in data
+  const currentStock = STOCKS.find(s => s.id === (stockId || '').toLowerCase()) || 
+                      STOCKS.find(s => s.id === stockId);
+  const d = RESEARCH_REPORTS[stockId] || RESEARCH_REPORTS['kspay']; // Fallback if data missing
+
+  const goBack = () => {
+    // If we have history, go back, else go to stock detail
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(`/stock/${stockId}`);
+    }
+  };
 
   return (
     <div style={{ flex: 1, backgroundColor: '#0a0a0a', overflowY: 'auto', color: 'white', fontFamily: "'DM Sans', sans-serif", paddingBottom: 40 }}>
       {/* Header */}
       <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
-        <button onClick={goBack} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <div onClick={goBack} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
-        </button>
+        </div>
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Deep Dive Analysis</h1>
           <p style={{ fontSize: 12, opacity: 0.6, margin: 0 }}>{currentStock?.name || 'Asset'} Research</p>

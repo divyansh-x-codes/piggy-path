@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Topbar } from '../components/Shared';
 import { useAppContext } from '../context/AppContext';
 import { STOCKS } from '../data/mockData';
 
 const Watchlist = () => {
-  const { watchlist, setWatchlist, getPrice, getChange, openStockDetail } = useAppContext();
+  const navigate = useNavigate();
+  const { watchlist, setWatchlist, getPrice, getChange } = useAppContext();
 
   const removeWatchlist = (e, id) => {
     e.stopPropagation();
@@ -25,7 +27,7 @@ const Watchlist = () => {
             const price = getPrice(s);
             const chg = getChange(s);
             return (
-              <div key={id} onClick={() => openStockDetail(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+              <div key={id} onClick={() => navigate(`/stock/${s.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
                 <div style={{ width: 44, height: 44, borderRadius: 12, background: s.color + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: s.color }}>{s.logo}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>

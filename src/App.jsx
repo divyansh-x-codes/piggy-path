@@ -14,22 +14,35 @@ import Analysis from './screens/Analysis';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
-const ScreenRenderer = () => {
-  const { currentScreen } = useAppContext();
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
+  LineElement, Title, Tooltip, Legend, Filler
+} from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+
+const RootContent = () => {
+  const { user, currentScreen } = useAppContext();
 
   return (
     <div className="screen active" style={{ animation: 'none' }}>
-      {currentScreen === 'splash' && <Splash />}
-      {currentScreen === 'auth' && <Auth />}
-      {currentScreen === 'home' && <Home />}
-      {currentScreen === 'stocks' && <Stocks />}
-      {currentScreen === 'stock-detail' && <StockDetail />}
-      {currentScreen === 'profile' && <Profile />}
-      {currentScreen === 'news' && <News />}
-      {currentScreen === 'bucket' && <Bucket />}
-      {currentScreen === 'ipo' && <IPO />}
-      {currentScreen === 'watchlist' && <Watchlist />}
-      {currentScreen === 'analysis' && <Analysis />}
+      <Routes>
+        <Route path="/" element={<Splash />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/stocks" element={<Stocks />} />
+        <Route path="/stock/:stockId" element={<StockDetail />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/news" element={<News />} />
+        <Route path="/bucket" element={<Bucket />} />
+        <Route path="/ipo" element={<IPO />} />
+        <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/analysis/:stockId" element={<Analysis />} />
+        {/* Redirect unknown routes to home or splash */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </div>
   );
 };
@@ -37,9 +50,11 @@ const ScreenRenderer = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <ScreenRenderer />
-      </AppProvider>
+      <BrowserRouter>
+        <AppProvider>
+          <RootContent />
+        </AppProvider>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

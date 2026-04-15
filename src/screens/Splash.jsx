@@ -1,19 +1,16 @@
 import React, { useEffect } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { db } from '../lib/firebase';
-import { doc, setDoc, collection, writeBatch } from 'firebase/firestore';
-import { STOCKS } from '../data/mockData';
+import { useNavigate } from 'react-router-dom';
 
 const Splash = () => {
-  const { goScreen } = useAppContext();
+  const navigate = useNavigate();
 
   // Auto-navigate to auth after 1.8s (matching HTML behavior)
   useEffect(() => {
     const timer = setTimeout(() => {
-      goScreen('auth', false);
+      navigate('/auth', { replace: true });
     }, 1800);
     return () => clearTimeout(timer);
-  }, [goScreen]);
+  }, [navigate]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FAFAFA' }}>

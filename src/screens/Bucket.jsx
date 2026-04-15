@@ -1,16 +1,24 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { STOCKS } from '../data/mockData';
 
 const Bucket = () => {
-  const { getPrice, getChange, openStockDetail, goBack } = useAppContext();
+  const navigate = useNavigate();
+  const { getPrice, getChange } = useAppContext();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '30px 20px 16px', zIndex: 10 }}>
-        <div onClick={goBack} style={{ width: 46, height: 46, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white', flexShrink: 0 }}>
+        <div onClick={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate('/home');
+          }
+        }} style={{ width: 46, height: 46, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white', flexShrink: 0 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </div>
 
@@ -44,7 +52,7 @@ const Bucket = () => {
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,.6)' }}>+</span>
                 </div>
               </div>
-              <button className="btn btn-green" style={{ padding: '10px 16px', fontSize: 13, flexShrink: 0 }} onClick={() => openStockDetail(s.id)}>Invest Now</button>
+              <button className="btn btn-green" style={{ padding: '10px 16px', fontSize: 13, flexShrink: 0 }} onClick={() => navigate(`/stock/${s.id}`)}>Invest Now</button>
             </div>
           );
         })}

@@ -1,13 +1,14 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { 
-  doc, 
-  onSnapshot, 
-  collection, 
-  runTransaction, 
+import {
+  doc,
+  onSnapshot,
+  collection,
+  runTransaction,
   getDoc,
-  serverTimestamp 
+  serverTimestamp
 } from 'firebase/firestore';
 import { STOCKS as MOCK_STOCKS } from '../data/mockData';
 
@@ -15,14 +16,13 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   // ─── STATED ─────────────────────────────────────────────────────────────
-  const [currentScreen, setCurrentScreen] = useState('splash');
-  const [prevScreens, setPrevScreens]     = useState([]);
-  const [currentStock, setCurrentStock]   = useState(null);
+  const navigate = useNavigate();
+  const [currentStock, setCurrentStock] = useState(null);
 
   const [user, setUser] = useState(null);
   const [userData, setUserData] = useState({ balance: 100000 });
   const [portfolio, setPortfolio] = useState({ holdings: {} }); // STRICT STRUCTURE
-  const [stocks, setStocks] = useState({}); 
+  const [stocks, setStocks] = useState({});
   const [ipoOrders, setIpoOrders] = useState([]);
   const [watchlist, setWatchlist] = useState(['msft', 'aapl', 'googl']);
 
@@ -37,16 +37,16 @@ export const AppProvider = ({ children }) => {
         if (!userSnap.exists()) {
           tx.set(userRef, { balance: 100000, createdAt: Date.now() });
         }
-        
-        if (currentScreen === 'splash' || currentScreen === 'auth') {
-          setCurrentScreen('home');
+
+        if (window.location.pathname === '/' || window.location.pathname === '/auth') {
+          navigate('/home');
         }
       } else {
-        setCurrentScreen('auth');
+        navigate('/auth');
       }
     });
     return unsubscribe;
-  }, []);
+  }, [navigate]);
 
   // ─── FIRESTORE LISTENERS ──────────────────────────────────────────────────
   useEffect(() => {
@@ -96,7 +96,7 @@ export const AppProvider = ({ children }) => {
         stockMap[doc.id] = doc.data();
       });
       setStocks(stockMap);
-      
+
       if (!currentStock && snap.docs.length > 0) {
         const firstId = snap.docs[0].id;
         setCurrentStock(MOCK_STOCKS.find(s => s.id === firstId) || snap.docs[0].data());
@@ -104,19 +104,6 @@ export const AppProvider = ({ children }) => {
     });
     return stocksUnsub;
   }, [user, currentStock]);
-
-  // ─── HELPERS ──────────────────────────────────────────────────────────────
-  const goScreen = (id, addHistory = true) => {
-    if (addHistory && currentScreen !== id) setPrevScreens(prev => [...prev, currentScreen]);
-    setCurrentScreen(id);
-  };
-
-  const goBack = () => {
-    const newPrev = [...prevScreens];
-    const prev = newPrev.pop();
-    setPrevScreens(newPrev);
-    setCurrentScreen(prev || 'home');
-  };
 
   const getPrice = useCallback((s) => {
     if (!s) return 0;
@@ -178,7 +165,7 @@ export const AppProvider = ({ children }) => {
           const current = holdings[stockId] || { qty: 0, avgPrice: 0 };
           const newQty = current.qty + qty;
           const newAvg = (current.qty * current.avgPrice + qty * price) / newQty;
-          
+
           holdings[stockId] = { qty: newQty, avgPrice: newAvg };
           tx.set(portfolioRef, { holdings }, { merge: true });
 
@@ -253,11 +240,6 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const openStockDetail = (stockId) => {
-    const s = MOCK_STOCKS.find(x => x.id === stockId);
-    if (s) { setCurrentStock(s); goScreen('stock-detail'); }
-  };
-
   const applyIPO = (ipoData) => {
     setIpoOrders(prev => [...prev, { name: ipoData.name, ts: Date.now() }]);
     return true;
@@ -265,12 +247,11 @@ export const AppProvider = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      currentScreen, goScreen, goBack,
-      portfolio, tradeHistory: [], 
+      portfolio, tradeHistory: [],
       currentStock, setCurrentStock,
       ipoOrders, watchlist, setWatchlist, userData, setUserData, user,
       getPrice, getChange, getPriceHistory, getPortfolioValue,
-      openStockDetail, confirmTrade, applyIPO, forceSeed,
+      confirmTrade, applyIPO, forceSeed,
       STOCKS: MOCK_STOCKS
     }}>
       {children}

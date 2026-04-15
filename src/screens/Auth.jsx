@@ -16,7 +16,10 @@ const INPUT_STYLE = {
   boxSizing: 'border-box',
 };
 
+import { useNavigate } from 'react-router-dom';
+
 const Auth = () => {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +30,6 @@ const Auth = () => {
   const [checked, setChecked] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { goScreen } = useAppContext();
 
   const handleLoginSuccess = async (user) => {
     // 1. Sync user data with Firestore
@@ -47,7 +49,7 @@ const Auth = () => {
 
     // 2. Navigation is handled by AppContext's auth listener usually, 
     // but we can trigger it here for faster UI feedback
-    goScreen('home', false);
+    navigate('/home', { replace: true });
   };
 
   const onEmailAuth = () => {

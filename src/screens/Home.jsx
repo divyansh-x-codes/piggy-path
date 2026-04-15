@@ -1,12 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { STOCKS, NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
 const Home = () => {
+  const navigate = useNavigate();
   const {
-    goScreen, portfolio, getPortfolioValue, userData,
-    setCurrentStock, getPrice, getChange, openStockDetail, forceSeed
+    portfolio, getPortfolioValue, userData,
+    getPrice, getChange, forceSeed
   } = useAppContext();
   const portfolioValue = getPortfolioValue();
 
@@ -58,7 +60,7 @@ const Home = () => {
           const pnl = (price - avgP) * qty;
 
           return (
-            <div key={id} onClick={() => openStockDetail(id)} style={{ minWidth: 160, background: '#6D28D9', borderRadius: 20, border: '1.5px solid black', padding: '14px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)' }}>
+            <div key={id} onClick={() => navigate(`/stock/${id}`)} style={{ minWidth: 160, background: '#6D28D9', borderRadius: 20, border: '1.5px solid black', padding: '14px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', cursor: 'pointer', boxShadow: '0 4px 12px rgba(109, 40, 217, 0.2)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 {renderLogo(stock.logo || stock.id)}
                 <div style={{ color: 'white', paddingTop: 2 }}>
@@ -145,7 +147,7 @@ const Home = () => {
             { id: 'watchlist', icon: '👁️', label: 'Watchlist' },
             { id: 'bucket',    icon: '🪣', label: 'Bucket'    }
           ].map(item => (
-            <div key={item.id} onClick={() => goScreen(item.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <div key={item.id} onClick={() => navigate(`/${item.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <div style={{ width: 56, height: 56, border: '1.5px solid var(--border)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: 'white' }}>
                 {item.icon}
               </div>
@@ -157,7 +159,7 @@ const Home = () => {
         {/* My Portfolio */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>My Portfolio</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('stocks')}>View all</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/stocks')}>View all</span>
         </div>
         {renderPortfolioCards()}
 
@@ -168,7 +170,7 @@ const Home = () => {
         </div>
         <div style={{ padding: '0 20px' }}>
           {NEWS.slice(0, 2).map(n => (
-            <div key={n.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => goScreen('news')}>
+            <div key={n.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => navigate('/news')}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 36, height: 36, background: 'var(--purple-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--purple)' }}>{n.stock[0]}</div>
@@ -188,7 +190,7 @@ const Home = () => {
         {/* Trending Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', marginTop: 12 }}>
           <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Trending</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('stocks')}>View all</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/stocks')}>View all</span>
         </div>
         <div className="scroll-row" style={{ padding: '0 20px 20px 20px', gap: 12 }}>
           {STOCKS.map(s => {
@@ -196,7 +198,7 @@ const Home = () => {
             const chg = getChange(s);
             const isUp = chg >= 0;
             return (
-              <div key={s.id} onClick={() => openStockDetail(s.id)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
+              <div key={s.id} onClick={() => navigate(`/stock/${s.id}`)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
                 <div className="stock-logo" style={{ color: s.color }}>{s.logo}</div>
                 <div style={{ color: 'white' }}>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
@@ -218,7 +220,7 @@ const Home = () => {
           {STOCKS.filter(s => s.sector === 'IT').map(s => {
             const p = getPrice(s);
             return (
-              <div key={s.id} onClick={() => openStockDetail(s.id)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
+              <div key={s.id} onClick={() => navigate(`/stock/${s.id}`)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
                 <div className="stock-logo" style={{ color: s.color }}>{s.logo}</div>
                 <div style={{ color: 'white' }}>
                   <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>

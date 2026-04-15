@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { BottomNav } from '../components/Shared';
 import { STOCKS } from '../data/mockData';
 
 const Profile = () => {
-  const { goScreen, userData, portfolio, tradeHistory, getPrice, user } = useAppContext();
+  const navigate = useNavigate();
+  const { userData, portfolio, tradeHistory, getPrice, user } = useAppContext();
 
   // Calculate portfolio stats
   const holdings = portfolio.holdings || {};
@@ -24,7 +26,7 @@ const Profile = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', paddingTop: 24, zIndex: 10 }}>
         {/* Back Button */}
-        <div onClick={() => goScreen('home')} style={{ width: 42, height: 42, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white' }}>
+        <div onClick={() => navigate('/home')} style={{ width: 42, height: 42, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </div>
 
@@ -140,7 +142,7 @@ const Profile = () => {
                 const pnl = currVal - inv;
                 const isUp = pnl >= 0;
               return (
-                <div key={id} onClick={() => goScreen('stock-detail')} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 20, padding: '16px', marginBottom: 10 }}>
+                <div key={id} onClick={() => navigate(`/stock/${id}`)} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 20, padding: '16px', marginBottom: 10, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 40, height: 40, borderRadius: 12, background: (stock.color || '#7C3AED') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: stock.color || '#7C3AED' }}>

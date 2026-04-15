@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, Title, Tooltip, Legend, Filler
-} from 'chart.js';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useAppContext } from '../context/AppContext';
-import { STOCKS, RESEARCH_REPORTS } from '../data/mockData';
+import { RESEARCH_REPORTS } from '../data/mockData';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
+import { useParams, useNavigate } from 'react-router-dom';
 
 const StockDetail = () => {
+  const { stockId } = useParams();
+  const navigate = useNavigate();
   const {
-    currentStock, goBack, goScreen, portfolio,
-    getPrice, getChange, getPriceHistory, userData,
-    confirmTrade
+    portfolio, getPrice, getChange, userData,
+    confirmTrade, STOCKS
   } = useAppContext();
 
+  // ─── ALL STATE ──────────────────────────────────────────────────────────
   const [range, setRange] = useState('2y');
   const [tab, setTab] = useState('overview');
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
@@ -23,24 +23,49 @@ const StockDetail = () => {
   const [tradeQty, setTradeQty] = useState(1);
   const [showConfirm, setShowConfirm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [liveStock, setLiveStock] = useState(null);
 
-  if (!currentStock) return null;
+  // ─── REAL-TIME PRICE + GRAPH LISTENER — BASED ON URL stockId ─────────────
+  useEffect(() => {
+    if (!stockId) return;
 
+    console.log("[Firestore] Attaching listener for stockId:", stockId);
+    const unsub = onSnapshot(doc(db, 'stocks', stockId), (snap) => {
+      if (snap.exists()) {
+        setLiveStock({ id: snap.id, ...snap.data() });
+      }
+    });
+
+    return () => unsub();
+  }, [stockId]);
+
+  // Find the base metadata from mock STOCKS to keep UI rich (colors, etc.)
+  const currentStock = STOCKS.find(s => s.id === stockId) || liveStock;
+
+  // ─── EARLY RETURN — only AFTER all hooks ─────────────────────────────────
+  if (!currentStock) return <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>Loading stock details...</div>;
+
+  // ─── DERIVED DATA ────────────────────────────────────────────────────────
   const sid = (currentStock.id || '').toLowerCase();
-  const price = getPrice(currentStock);
-  const chgPercent = getChange(currentStock);
+  const price = (liveStock?.price) || getPrice(currentStock) || 0;
+  const chgPercent = (liveStock ? ((liveStock.price - (currentStock.basePrice || 100)) / (currentStock.basePrice || 100) * 100) : getChange(currentStock)) || 0;
 
-  // Chart data from local getPriceHistory (seeded PRNG + trade overlay)
-  const chartHistory = getPriceHistory(currentStock.id, range);
+  // Real-time graph: history array lives in Firestore stock doc
+  const rawHistory = Array.isArray(liveStock?.history) ? liveStock.history : [];
+  
+  // GUARANTEED FALLBACK — chart is NEVER empty
+  const safeGraphData = rawHistory.length > 0
+    ? rawHistory
+    : [price || 0];
 
-  const startPrice = chartHistory[0] || price;
+  const startPrice = safeGraphData[0] || price || 0;
   const isUp = price >= startPrice;
   const color = isUp ? '#22C55E' : '#EF4444';
 
   const chartData = {
-    labels: chartHistory.map(() => ''),
+    labels: safeGraphData.map(() => ''),
     datasets: [{
-      data: chartHistory,
+      data: safeGraphData,
       borderColor: color,
       borderWidth: 2,
       tension: 0.35,
@@ -67,19 +92,19 @@ const StockDetail = () => {
     }
   };
 
-  // Portfolio holdings from local state
-  const holding = (portfolio.holdings || {})[sid] || { qty: 0, avgPrice: 0 };
+  // Portfolio holdings
+  const holding = (portfolio?.holdings || {})[sid] || { qty: 0, avgPrice: 0 };
   const qty = holding.qty || 0;
   const avgPrice = holding.avgPrice || 0;
   const invested = avgPrice * qty;
   const currValue = price * qty;
   const pnl = currValue - invested;
 
-  // ─── TRADE HANDLER — Real-time Firestore Transaction ────────
+  // ─── TRADE HANDLER ────────────────────────────────────────────────────────
   const handleConfirmTrade = async () => {
     setLoading(true);
     try {
-      const result = await confirmTrade(tradeType, currentStock.id, tradeQty);
+      const result = await confirmTrade(tradeType, stockId, tradeQty);
       if (!result.success) {
         alert(result.error);
         setLoading(false);
@@ -97,6 +122,15 @@ const StockDetail = () => {
       setLoading(false);
     }
   };
+
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/home');
+    }
+  };
+  const goScreen = (scr) => navigate(`/${scr}`);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'white' }}>
@@ -159,7 +193,7 @@ const StockDetail = () => {
         {RESEARCH_REPORTS[currentStock.id] && (
           <div style={{ margin: '0 16px 20px' }}>
             <button
-              onClick={() => goScreen('analysis')}
+              onClick={() => navigate(`/analysis/${stockId}`)}
               style={{
                 width: '100%', padding: '16px', borderRadius: 20,
                 background: 'linear-gradient(90deg, #121212 0%, #1a1a1a 100%)',
@@ -298,18 +332,18 @@ const StockDetail = () => {
               </div>
             )}
 
-            <button 
+            <button
               disabled={!!showConfirm || loading}
-              onClick={handleConfirmTrade} 
-              style={{ 
-                width: '100%', 
-                padding: 18, 
-                borderRadius: 50, 
-                background: tradeType === 'buy' ? '#22c55e' : '#7C3AED', 
-                color: 'white', 
-                fontWeight: 800, 
-                fontSize: 16, 
-                border: 'none', 
+              onClick={handleConfirmTrade}
+              style={{
+                width: '100%',
+                padding: 18,
+                borderRadius: 50,
+                background: tradeType === 'buy' ? '#22c55e' : '#7C3AED',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: 16,
+                border: 'none',
                 cursor: (showConfirm || loading) ? 'not-allowed' : 'pointer',
                 opacity: (showConfirm || loading) ? 0.7 : 1
               }}

@@ -1,10 +1,11 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
 const News = () => {
-  const { goScreen } = useAppContext();
+  const navigate = useNavigate();
   const cats = [...new Set(NEWS.map(n => n.cat))];
 
   return (
@@ -12,7 +13,7 @@ const News = () => {
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '24px 20px 16px', zIndex: 10 }}>
-        <div onClick={() => goScreen('home')} style={{ width: 46, height: 46, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white', flexShrink: 0 }}>
+        <div onClick={() => navigate('/home')} style={{ width: 46, height: 46, borderRadius: '50%', border: '2px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', background: 'white', flexShrink: 0 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </div>
 

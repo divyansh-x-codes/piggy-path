@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { IPO_DATA } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
 const IPO = () => {
-  const { ipoOrders, applyIPO, goBack } = useAppContext();
+  const navigate = useNavigate();
+  const { ipoOrders, applyIPO } = useAppContext();
   const [tab, setTab] = useState('list');
   const [activeIpoTab, setActiveIpoTab] = useState(0);
 
@@ -25,7 +27,13 @@ const IPO = () => {
 
       {/* Top Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 20px', position: 'relative' }}>
-        <div onClick={goBack} style={{ position: 'absolute', left: 20, width: 44, height: 44, borderRadius: '50%', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+        <div onClick={() => {
+          if (window.history.length > 1) {
+            navigate(-1);
+          } else {
+            navigate('/home');
+          }
+        }} style={{ position: 'absolute', left: 20, width: 44, height: 44, borderRadius: '50%', border: '1px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </div>
         <div style={{ fontSize: 20, fontWeight: 900, color: 'black' }}>IPO</div>

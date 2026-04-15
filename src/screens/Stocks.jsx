@@ -1,11 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { BottomNav, Topbar } from '../components/Shared';
 import { STOCKS } from '../data/mockData';
 import { Line } from 'react-chartjs-2';
 
 const Stocks = () => {
-  const { getPrice, getChange, getPriceHistory, openStockDetail } = useAppContext();
+  const navigate = useNavigate();
+  const { getPrice, getChange, getPriceHistory } = useAppContext();
 
   const renderSparkline = (id) => {
     const history = getPriceHistory(id, '6m').slice(-20);
@@ -57,7 +59,7 @@ const Stocks = () => {
           const isUp = chg >= 0;
 
           return (
-            <div key={s.id} onClick={() => openStockDetail(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
+            <div key={s.id} onClick={() => navigate(`/stock/${s.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: (s.color || '#6D28D9') + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: s.color || '#6D28D9', border: '1px solid #f3f4f6' }}>
                 {s.logo || s.id.substring(0,2).toUpperCase()}
               </div>
