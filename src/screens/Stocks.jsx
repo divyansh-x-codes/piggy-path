@@ -61,7 +61,7 @@ const Stocks = () => {
           return (
             <div key={s.id} onClick={() => navigate(`/stock/${s.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 0', borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}>
               <div style={{ width: 44, height: 44, borderRadius: 12, background: (s.color || '#6D28D9') + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: s.color || '#6D28D9', border: '1px solid #f3f4f6' }}>
-                {s.logo || s.id.substring(0,2).toUpperCase()}
+                {s.logo || s.id.substring(0, 2).toUpperCase()}
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 700, fontSize: 15, color: '#111' }}>{s.name}</div>

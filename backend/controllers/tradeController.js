@@ -62,7 +62,10 @@ const placeBuyOrder = async (req, res) => {
 
       // GLOBAL PRICE IMPACT (User Request: +2%)
       const newPrice = +(price * 1.02).toFixed(2);
-      t.update(stockRef, { price: newPrice });
+      t.update(stockRef, { 
+        price: newPrice,
+        totalHoldings: admin.firestore.FieldValue.increment(quantity)
+      });
     });
 
     res.json({ success: true, message: 'Buy successful' });
@@ -115,7 +118,10 @@ const placeSellOrder = async (req, res) => {
 
       // GLOBAL PRICE IMPACT (User Request: -2%)
       const newPrice = +(price * 0.98).toFixed(2);
-      t.update(stockRef, { price: newPrice });
+      t.update(stockRef, { 
+        price: newPrice,
+        totalHoldings: admin.firestore.FieldValue.increment(-quantity)
+      });
     });
 
     res.json({ success: true, message: 'Sell successful' });

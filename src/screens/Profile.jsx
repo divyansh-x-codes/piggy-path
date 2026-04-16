@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { BottomNav } from '../components/Shared';
 import { STOCKS } from '../data/mockData';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { userData, portfolio, tradeHistory, getPrice, user } = useAppContext();
+  const [leaderboard, setLeaderboard] = React.useState(null);
 
   // Calculate portfolio stats
   const holdings = portfolio.holdings || {};
@@ -19,6 +22,14 @@ const Profile = () => {
   }, 0);
   const totalPnL = totalCurrentValue - totalInvested;
   const pnlPercent = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(2) : '0.00';
+
+  // Realtime Leaderboard Listener
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'leaderboard', 'global'), (snap) => {
+      if (snap.exists()) setLeaderboard(snap.data());
+    });
+    return () => unsub();
+  }, []);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
@@ -83,15 +94,7 @@ const Profile = () => {
               <div style={{ height: '1.5px', background: '#e2e8f0', width: '100%', marginBottom: 12 }}></div>
 
 
-              {/* Social icons */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: 'linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                </div>
-                <div style={{ width: 34, height: 34, borderRadius: 8, background: '#5865F2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" /></svg>
-                </div>
-              </div>
+
 
             </div>
           </div>
@@ -101,7 +104,7 @@ const Profile = () => {
         <div style={{ margin: '16px 20px 0' }}>
           <div style={{ background: 'white', border: '2px solid black', borderRadius: 24, padding: '20px' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 16 }}>Investment Summary</div>
-            
+
             {/* 4 Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
               {[
@@ -127,26 +130,66 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* ── MARKET LEADERBOARD (NEW) ────────────────────────────────── */}
+        <div style={{ margin: '16px 20px 0' }}>
+          <div style={{ background: 'white', border: '2px solid black', borderRadius: 24, padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ fontWeight: 800, fontSize: 16 }}>Market Performers 🏆</div>
+              <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 700, background: '#f0fdf4', padding: '4px 8px', borderRadius: 8 }}>REALTIME</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {/* Top Gainer */}
+              <div style={{ background: '#f0fdf4', borderRadius: 16, padding: '12px', border: '1px solid #16a34a22' }}>
+                <div style={{ fontSize: 9, color: '#16a34a', fontWeight: 800, marginBottom: 4 }}>TOP GAINER 🚀</div>
+                {leaderboard?.topGainers?.[0] ? (
+                  <>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{leaderboard.topGainers[0].symbol}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>+{leaderboard.topGainers[0].change.toFixed(2)}%</div>
+                  </>
+                ) : <div style={{ fontSize: 10, opacity: 0.5 }}>Loading...</div>}
+              </div>
+
+              {/* Top Loser */}
+              <div style={{ background: '#fef2f2', borderRadius: 16, padding: '12px', border: '1px solid #dc262622' }}>
+                <div style={{ fontSize: 9, color: '#dc2626', fontWeight: 800, marginBottom: 4 }}>TOP LOSER 📉</div>
+                {leaderboard?.topLosers?.[0] ? (
+                  <>
+                    <div style={{ fontWeight: 800, fontSize: 14 }}>{leaderboard.topLosers[0].symbol}</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>{leaderboard.topLosers[0].change.toFixed(2)}%</div>
+                  </>
+                ) : <div style={{ fontSize: 10, opacity: 0.5 }}>Loading...</div>}
+              </div>
+            </div>
+
+            {leaderboard && (
+              <div onClick={() => navigate('/stocks')} style={{ marginTop: 12, textAlign: 'center', fontSize: 11, fontWeight: 700, color: '#7C3AED', cursor: 'pointer' }}>
+                Analyze all {STOCKS.length} stocks →
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* ── PER-STOCK HOLDINGS ────────────────────────────────────────── */}
         {portfolioEntries.length > 0 && (
           <div style={{ margin: '16px 20px 0' }}>
             <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 12 }}>My Holdings</div>
-              {portfolioEntries.map(([id, h]) => {
-                const stock = STOCKS.find(s => s.id === id);
-                if (!stock) return null;
-                const currPrice = getPrice(stock);
-                const qty = h.qty || 0;
-                const avgP = h.avgPrice || 0;
-                const inv = qty * avgP;
-                const currVal = currPrice * qty;
-                const pnl = currVal - inv;
-                const isUp = pnl >= 0;
+            {portfolioEntries.map(([id, h]) => {
+              const stock = STOCKS.find(s => s.id === id);
+              if (!stock) return null;
+              const currPrice = getPrice(stock);
+              const qty = h.qty || 0;
+              const avgP = h.avgPrice || 0;
+              const inv = qty * avgP;
+              const currVal = currPrice * qty;
+              const pnl = currVal - inv;
+              const isUp = pnl >= 0;
               return (
                 <div key={id} onClick={() => navigate(`/stock/${id}`)} style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 20, padding: '16px', marginBottom: 10, cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ width: 40, height: 40, borderRadius: 12, background: (stock.color || '#7C3AED') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 14, color: stock.color || '#7C3AED' }}>
-                        {(stock.logo || stock.name.substring(0,2)).toString().substring(0, 2)}
+                        {(stock.logo || stock.name.substring(0, 2)).toString().substring(0, 2)}
                       </div>
                       <div>
                         <div style={{ fontWeight: 800, fontSize: 14 }}>{stock.name}</div>

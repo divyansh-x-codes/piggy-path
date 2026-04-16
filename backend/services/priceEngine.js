@@ -6,8 +6,8 @@ const { getIO } = require('../sockets/index');
  * Fluctuates stock prices every 2 seconds and broadcasts to all users.
  */
 const startPriceEngine = () => {
-    console.log('[PriceEngine] Started - Firestore Sync Active');
-    
+    console.log('[PriceEngine] Passive Monitor Active - Automated Fluctuations Disabled');
+
     setInterval(async () => {
         try {
             const stocksRef = db.collection('stocks');

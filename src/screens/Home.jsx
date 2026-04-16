@@ -4,13 +4,44 @@ import { useAppContext } from '../context/AppContext';
 import { STOCKS, NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+
 const Home = () => {
   const navigate = useNavigate();
   const {
     portfolio, getPortfolioValue, userData,
-    getPrice, getChange, forceSeed
+    getPrice, getChange, forceSeed, user, stocks
   } = useAppContext();
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [results, setResults] = React.useState([]);
+  const [leaderboard, setLeaderboard] = React.useState(null);
+
+  const isSuperAdmin = user?.email === 'simplydivyanshk@gmail.com';
+
+  React.useEffect(() => {
+    if (!isSuperAdmin) return;
+    const unsub = onSnapshot(doc(db, 'leaderboard', 'global'), (snap) => {
+      if (snap.exists()) setLeaderboard(snap.data());
+    });
+    return () => unsub();
+  }, [isSuperAdmin]);
+
   const portfolioValue = getPortfolioValue();
+
+  const handleSearch = (e) => {
+    const q = e.target.value;
+    setSearchQuery(q);
+    if (q.trim().length > 0) {
+      const filtered = STOCKS.filter(s =>
+        s.name.toLowerCase().includes(q.toLowerCase()) ||
+        s.ticker.toLowerCase().includes(q.toLowerCase())
+      );
+      setResults(filtered);
+    } else {
+      setResults([]);
+    }
+  };
 
   const renderLogo = (logoType) => {
     if (logoType === 'ms') {
@@ -30,13 +61,13 @@ const Home = () => {
         </div>
       );
     }
-    return <div style={{ width: 34, height: 34, borderRadius: 10, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>{logoType.substring(0,2).toUpperCase()}</div>;
+    return <div style={{ width: 34, height: 34, borderRadius: 10, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12 }}>{logoType.substring(0, 2).toUpperCase()}</div>;
   };
 
   const renderPortfolioCards = () => {
     const holdings = portfolio.holdings || {};
     const holdingIds = Object.keys(holdings).filter(id => holdings[id]?.qty > 0);
-    
+
     if (holdingIds.length === 0) {
       return (
         <div style={{ padding: '0 20px 20px' }}>
@@ -82,21 +113,167 @@ const Home = () => {
     );
   };
 
+  const goScreen = (scr) => navigate(`/${scr}`);
+
+  // MARKET MASTER: RANK ALL COMPANIES
+  const masterLeaderboard = React.useMemo(() => {
+    if (!isSuperAdmin) return [];
+    const stockList = Object.entries(stocks || {}).map(([id, s]) => {
+      const price = s.price || 0;
+      const prev = s.prevPrice || price;
+      const change = prev !== 0 ? ((price - prev) / prev) * 100 : 0;
+      return { id, symbol: s.symbol, name: s.name, price, change };
+    });
+
+    // Sort by performance (percent change)
+    return [...stockList].sort((a, b) => b.change - a.change);
+  }, [stocks, isSuperAdmin]);
+
+  if (isSuperAdmin) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#0F172A' }}>
+        {/* EXCLUSIVE ADMIN HEADER */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 20px', background: '#1E293B', borderBottom: '1px solid #334155' }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: 'white', letterSpacing: '-0.5px' }}>MARKET TERMINAL</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <div style={{ width: 8, height: 8, background: '#10B981', borderRadius: '50%', boxShadow: '0 0 10px #10B981' }}></div>
+              <span style={{ fontSize: 10, fontWeight: 800, color: '#10B981', textTransform: 'uppercase', letterSpacing: '1px' }}>Pure Realtime Sync</span>
+            </div>
+          </div>
+          <div style={{ color: '#94A3B8', fontSize: 11, fontWeight: 700 }}>{masterLeaderboard.length} Companies Tracked</div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {masterLeaderboard.map((stock, i) => {
+              const chg = stock.change;
+              const isUp = chg > 0;
+              const isNeutral = chg === 0;
+
+              return (
+                <div
+                  key={stock.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '16px',
+                    background: '#1E293B',
+                    borderRadius: 16,
+                    border: '1px solid #334155',
+                    transition: 'transform 0.2s ease'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 8,
+                      background: i < 3 ? '#F59E0B22' : '#334155',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: i < 3 ? '#F59E0B' : '#94A3B8',
+                      border: i < 3 ? '1px solid #F59E0B44' : 'none'
+                    }}>
+                      {i + 1}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: 'white' }}>{stock.symbol}</span>
+                        {i === 0 && <span style={{ fontSize: 10, background: '#F59E0B', color: 'white', padding: '1px 6px', borderRadius: 4, fontWeight: 900 }}>TOP</span>}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{stock.name}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'white' }}>₹{stock.price.toLocaleString()}</div>
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: isNeutral ? '#94A3B8' : (isUp ? '#10B981' : '#EF4444'),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                      gap: 4
+                    }}>
+                      {isNeutral ? '•' : (isUp ? '▲' : '▼')}
+                      {isNeutral ? '0.00%' : `${Math.abs(chg).toFixed(2)}%`}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ padding: '40px 0', textAlign: 'center', opacity: 0.3 }}>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '2px' }}>End of Market Stream</p>
+          </div>
+        </div>
+
+        <BottomNav active="home" />
+      </div>
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
 
       {/* Top Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', position: 'relative', zIndex: 10, marginTop: 20 }}>
-        <div style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', position: 'relative', zIndex: 100, marginTop: 20 }}>
+        <div onClick={() => navigate('/home')} style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'white', cursor: 'pointer' }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"></polyline></svg>
         </div>
 
-        <div style={{ flex: 1, margin: '0 12px', border: '1.5px solid black', borderRadius: 50, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'white' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <span style={{ fontSize: 13, color: '#9ca3af', fontWeight: 500 }}>Search stocks, IPO...</span>
+        {/* SEARCH BAR CONTAINER */}
+        <div style={{ flex: 1, margin: '0 12px', position: 'relative' }}>
+          <div style={{ border: '1.5px solid black', borderRadius: 50, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8, background: 'white' }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input
+              type="text"
+              placeholder="Search stocks..."
+              value={searchQuery}
+              onChange={handleSearch}
+              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: 'black' }}
+            />
+            {searchQuery && (
+              <span onClick={() => { setSearchQuery(''); setResults([]); }} style={{ cursor: 'pointer', fontSize: 16, fontWeight: 800 }}>✕</span>
+            )}
+          </div>
+
+          {/* SEARCH RESULTS DROPDOWN */}
+          {results.length > 0 && (
+            <div style={{ position: 'absolute', top: 52, left: 0, right: 0, background: 'white', borderRadius: 20, border: '1.5px solid black', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', overflow: 'hidden', zIndex: 1000 }}>
+              {results.slice(0, 5).map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => { navigate(`/stock/${s.id}`); setSearchQuery(''); setResults([]); }}
+                  style={{ padding: '12px 16px', borderBottom: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'white'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: (s.color || '#eee') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 12, color: s.color }}>
+                      {s.logo || s.name[0]}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700 }}>{s.name}</div>
+                      <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600 }}>{s.ticker}</div>
+                    </div>
+                  </div>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ccc" strokeWidth="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div onClick={async () => { 
+        <div onClick={async () => {
           try {
             await forceSeed();
             alert('🟢 Cloud Market Data Synchronized!');
@@ -117,35 +294,40 @@ const Home = () => {
           <p style={{ fontSize: 13, opacity: 0.8, fontWeight: 600 }}>Hello {userData.name || 'Investor'} 👋</p>
           <p style={{ fontSize: 11, opacity: 0.7, marginBottom: 20 }}>Welcome Back, Let's continue</p>
 
-          <div style={{ display: 'flex', gap: 32, marginBottom: 20 }}>
-            <div>
-              <p style={{ fontSize: 10, opacity: 0.7, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.8px', marginBottom: 6 }}>Local Account</p>
-              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>
-                ₹ {(userData?.balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </h2>
+          <div style={{ display: 'flex', gap: 15, marginBottom: 25, background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 9, opacity: 0.6, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1px', marginBottom: 4 }}>Account</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.8 }}>₹</span>
+                <span style={{ fontSize: 24, fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: '-0.5px' }}>
+                  {(userData?.balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
             </div>
-            <div style={{ width: 1, background: 'rgba(255,255,255,0.2)' }}></div>
-            <div>
-              <p style={{ fontSize: 10, opacity: 0.7, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.8px', marginBottom: 6 }}>Portfolio Value</p>
-              <h2 style={{ fontFamily: '"Syne", sans-serif', fontWeight: 800, fontSize: 26, margin: 0 }}>
-                ₹ {Number(portfolioValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-              </h2>
+            <div style={{ width: 1, background: 'rgba(255,255,255,0.1)' }}></div>
+            <div style={{ flex: 1, paddingLeft: 10 }}>
+              <p style={{ fontSize: 9, opacity: 0.6, textTransform: 'uppercase', fontWeight: 800, letterSpacing: '1px', marginBottom: 4 }}>Portfolio</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.8 }}>₹</span>
+                <span style={{ fontSize: 24, fontWeight: 900, fontFamily: 'sans-serif', letterSpacing: '-0.5px' }}>
+                  {Number(portfolioValue || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                </span>
+              </div>
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10 }}>
-            <button style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>+ Add Money</button>
-            <button style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '10px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>View Analytics</button>
+            <button onClick={() => navigate('/profile')} style={{ flex: 1, background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', padding: '12px 20px', borderRadius: 50, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>View Portfolio</button>
           </div>
         </div>
 
         {/* Shortcuts */}
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 16px 20px' }}>
           {[
-            { id: 'stocks',    icon: '📈', label: 'Stocks'    },
-            { id: 'ipo',       icon: '🏦', label: 'IPO'       },
+            { id: 'stocks', icon: '📈', label: 'Stocks' },
+            { id: 'ipo', icon: '🏦', label: 'IPO' },
             { id: 'watchlist', icon: '👁️', label: 'Watchlist' },
-            { id: 'bucket',    icon: '🪣', label: 'Bucket'    }
+            { id: 'bucket', icon: '🪣', label: 'Bucket' }
           ].map(item => (
             <div key={item.id} onClick={() => navigate(`/${item.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
               <div style={{ width: 56, height: 56, border: '1.5px solid var(--border)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: 'white' }}>
@@ -187,9 +369,9 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Trending Section */}
+        {/* Featured Listings Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', marginTop: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Trending</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Featured Listings</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/stocks')}>View all</span>
         </div>
         <div className="scroll-row" style={{ padding: '0 20px 20px 20px', gap: 12 }}>
@@ -205,27 +387,6 @@ const Home = () => {
                   <div style={{ fontSize: 11, opacity: .7 }}>{s.ticker}</div>
                   <div style={{ fontWeight: 600, fontSize: 13 }}>₹ {p.toLocaleString()}</div>
                   <div style={{ fontSize: 11, color: isUp ? '#86efac' : '#fca5a5' }}>{isUp ? '▲ +' : '▼ '}{Math.abs(chg).toFixed(2)}%</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* IT Sector */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>IT Sector</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }}>View all</span>
-        </div>
-        <div className="scroll-row" style={{ padding: '0 20px 20px 20px', gap: 12 }}>
-          {STOCKS.filter(s => s.sector === 'IT').map(s => {
-            const p = getPrice(s);
-            return (
-              <div key={s.id} onClick={() => navigate(`/stock/${s.id}`)} className="stock-card" style={{ minWidth: 160, cursor: 'pointer' }}>
-                <div className="stock-logo" style={{ color: s.color }}>{s.logo}</div>
-                <div style={{ color: 'white' }}>
-                  <div style={{ fontWeight: 700, fontSize: 13 }}>{s.name}</div>
-                  <div style={{ fontSize: 11, opacity: .7 }}>{s.ticker}</div>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>₹ {p.toLocaleString()}</div>
                 </div>
               </div>
             );

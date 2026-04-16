@@ -69,13 +69,7 @@ export const Topbar = ({ title, rightIcon = '🔔', onRightClick, showSearch = f
 
   return (
     <div className="topbar">
-      <div className="circle-btn" onClick={() => {
-        if (window.history.length > 1) {
-          navigate(-1);
-        } else {
-          navigate('/home');
-        }
-      }}>←</div>
+      <div className="circle-btn" onClick={() => navigate('/home')}>←</div>
       {showSearch ? (
         <div style={{ flex: 1, background: '#f5f5f7', borderRadius: 50, padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 14 }}>🔍</span>

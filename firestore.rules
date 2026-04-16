@@ -11,31 +11,37 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // USERS (Balance & Profile)
     match /users/{userId} {
-      allow read, write: if isSignedIn() && isOwner(userId);
+      allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
     }
 
     // PORTFOLIO (User-specific holdings)
     match /portfolios/{userId} {
-      allow read, write: if isSignedIn() && isOwner(userId);
+      allow read, write: if isSignedIn() && (isOwner(userId) || isAdmin());
+    }
+
+    // LEADERBOARD (GLOBAL)
+    match /leaderboard/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only Cloud Functions can write
     }
 
     // STOCKS (GLOBAL - Same for everyone)
     match /stocks/{stockId} {
       allow read: if true;
+      allow write: if isAdmin(); // Admin can manage stocks
+      allow update: if isSignedIn(); // Users can trigger price updates via trades
+    }
 
-      // ❌ block dangerous ops
-      allow delete: if false;
-      allow create: if false;
-
-      // ✅ controlled update only during transaction
-      allow update: if isSignedIn()
-        && request.resource.data.price is number
-        && request.resource.data.price > 0
-        && request.resource.data.price < 1000000
-        && request.resource.data.history is list
-        && request.resource.data.history.size() <= 100;
+    // NEWS
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if false;
     }
 
     // IPO

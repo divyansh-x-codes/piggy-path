@@ -30,6 +30,7 @@ const Auth = () => {
   const [checked, setChecked] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAdminFlow, setIsAdminFlow] = useState(false);
 
   const handleLoginSuccess = async (user) => {
     // 1. Sync user data with Firestore
@@ -47,9 +48,20 @@ const Auth = () => {
       });
     }
 
-    // 2. Navigation is handled by AppContext's auth listener usually, 
-    // but we can trigger it here for faster UI feedback
-    navigate('/home', { replace: true });
+    // 2. Navigation
+    const isSuperAdmin = user.email === 'simplydivyanshk@gmail.com';
+
+    if (isAdminFlow || isSuperAdmin) {
+      const isUserAdmin = isSuperAdmin || (userSnap.exists() && userSnap.data().role === 'admin');
+      if (isUserAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        setError('Access Denied: Your account does not have administrator privileges.');
+        setIsAdminFlow(false);
+      }
+    } else {
+      navigate('/home', { replace: true });
+    }
   };
 
   const onEmailAuth = () => {
@@ -68,12 +80,15 @@ const Auth = () => {
 
     setLoading(true);
     setError('');
+    if (providerType === 'admin') setIsAdminFlow(true);
+    
     try {
       const result = await signInWithPopup(auth, provider);
       await handleLoginSuccess(result.user);
     } catch (err) {
       console.error('Social login failed:', err);
       setError(err.message || 'Login failed. Please try again.');
+      setIsAdminFlow(false);
     } finally {
       setLoading(false);
     }
@@ -175,6 +190,22 @@ const Auth = () => {
             </svg>
             Sign in with Google
           </button>
+        </div>
+
+        <div 
+          onClick={() => onSocialLogin('admin')}
+          style={{ 
+            marginTop: 24, 
+            textAlign: 'center', 
+            fontSize: 12, 
+            fontWeight: 700, 
+            color: '#6b7280', 
+            textDecoration: 'underline', 
+            cursor: 'pointer',
+            padding: '10px'
+          }}
+        >
+          Staff & Administrator Access
         </div>
       </div>
     </div>

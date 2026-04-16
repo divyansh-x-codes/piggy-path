@@ -52,7 +52,7 @@ const StockDetail = () => {
 
   // Real-time graph: history array lives in Firestore stock doc
   const rawHistory = Array.isArray(liveStock?.history) ? liveStock.history : [];
-  
+
   // GUARANTEED FALLBACK — chart is NEVER empty
   const safeGraphData = rawHistory.length > 0
     ? rawHistory
@@ -123,13 +123,7 @@ const StockDetail = () => {
     }
   };
 
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/home');
-    }
-  };
+  const goBack = () => navigate('/home');
   const goScreen = (scr) => navigate(`/${scr}`);
 
   return (
@@ -152,7 +146,7 @@ const StockDetail = () => {
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
 
         {/* Price Card with Graph */}
-        <div style={{ margin: '0 16px 20px', border: '1.5px solid var(--border)', borderRadius: 24, padding: '24px 0 16px', overflow: 'hidden' }}>
+        <div style={{ margin: '0 16px 20px', border: '1.5px solid #e5e7eb', borderRadius: 24, padding: '24px 0 16px', overflow: 'hidden' }}>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
             <div style={{ width: 50, height: 50, borderRadius: 14, background: (currentStock.color || '#7C3AED') + '22', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: currentStock.color || '#7C3AED' }}>
@@ -189,33 +183,6 @@ const StockDetail = () => {
           <button onClick={() => goScreen('news')} style={{ flex: 1, padding: '15px 0', borderRadius: 50, background: 'white', color: 'black', fontWeight: 700, fontSize: 15, border: '1px solid #e5e7eb', cursor: 'pointer' }}>News</button>
         </div>
 
-        {/* PREMIUM RESEARCH BUTTON */}
-        {RESEARCH_REPORTS[currentStock.id] && (
-          <div style={{ margin: '0 16px 20px' }}>
-            <button
-              onClick={() => navigate(`/analysis/${stockId}`)}
-              style={{
-                width: '100%', padding: '16px', borderRadius: 20,
-                background: 'linear-gradient(90deg, #121212 0%, #1a1a1a 100%)',
-                border: '1px solid rgba(124, 58, 237, 0.3)', color: 'white',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ background: '#7C3AED', width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800 }}>Deep Dive Research</div>
-                  <div style={{ fontSize: 10, opacity: 0.6, fontWeight: 600 }}>Institutional Analysis Report</div>
-                </div>
-              </div>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="3"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
-          </div>
-        )}
-
         {/* Tabs */}
         <div style={{ margin: '0 16px 20px', background: '#f3f4f6', borderRadius: 50, padding: 4, display: 'flex' }}>
           {['overview', 'fundamentals'].map(t => (
@@ -228,15 +195,15 @@ const StockDetail = () => {
         <div style={{ padding: '0 16px' }}>
           {tab === 'overview' ? (
             <div>
-              {/* YOUR POSITION */}
-              <h3 style={{ fontWeight: 800, fontSize: 16, color: 'black', marginBottom: 12 }}>Your Holdings</h3>
+              {/* YOUR HOLDINGS */}
+              <h3 style={{ fontWeight: 800, fontSize: 18, color: 'black', marginBottom: 16 }}>Your Holdings</h3>
               {qty === 0 ? (
-                <div style={{ padding: 20, border: '1px dashed #d1d5db', borderRadius: 20, textAlign: 'center', marginBottom: 24 }}>
-                  <p style={{ color: '#9ca3af', fontSize: 13, fontWeight: 500, margin: 0 }}>You don't own any {currentStock.name} yet. Click BUY to start!</p>
+                <div style={{ padding: 24, border: '1.5px dashed #cbd5e1', borderRadius: 24, textAlign: 'center', marginBottom: 32, background: 'rgba(248, 250, 252, 0.5)' }}>
+                  <p style={{ color: '#64748b', fontSize: 13, fontWeight: 600, margin: 0 }}>You don't own any {currentStock.name} yet. Click BUY to start!</p>
                 </div>
               ) : (
-                <div style={{ background: 'white', borderRadius: 20, padding: 20, border: '1.5px solid #e5e7eb', marginBottom: 24 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div style={{ background: 'white', borderRadius: 24, padding: 24, border: '1.5px solid #e2e8f0', marginBottom: 32, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
                     {[
                       { label: 'Quantity', value: qty },
                       { label: 'Invested', value: `₹ ${invested.toLocaleString(undefined, { maximumFractionDigits: 0 })}` },
@@ -244,37 +211,235 @@ const StockDetail = () => {
                       { label: 'P&L', value: `${pnl >= 0 ? '+' : ''}₹ ${Math.abs(pnl).toLocaleString(undefined, { maximumFractionDigits: 0 })}`, color: pnl >= 0 ? '#22c55e' : '#ef4444' }
                     ].map(({ label, value, color: c }) => (
                       <div key={label}>
-                        <p style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>{label}</p>
-                        <p style={{ fontWeight: 800, fontSize: 17, color: c || 'black', margin: 0 }}>{value}</p>
+                        <p style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>{label}</p>
+                        <p style={{ fontWeight: 900, fontSize: 18, color: c || '#0f172a', margin: 0 }}>{value}</p>
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 700 }}>AVG PRICE</span>
-                    <span style={{ fontSize: 12, color: 'black', fontWeight: 800 }}>₹ {avgPrice.toFixed(2)}</span>
+                  <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase' }}>AVG PRICE</span>
+                    <span style={{ fontSize: 14, color: '#0f172a', fontWeight: 900 }}>₹ {avgPrice.toFixed(2)}</span>
                   </div>
                 </div>
               )}
 
-              {/* Key Stats */}
-              <h3 style={{ fontWeight: 800, fontSize: 16, color: 'black', marginBottom: 12 }}>Key Statistics</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+              {/* KEY STATISTICS */}
+              <h3 style={{ fontWeight: 800, fontSize: 18, color: 'black', marginBottom: 16 }}>Key Statistics</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 32 }}>
                 {[
-                  { k: 'Volume', v: currentStock.volume },
-                  { k: 'Avg Price', v: `₹ ${currentStock.avgPrice?.toLocaleString()}` },
-                  { k: 'P/E Ratio', v: currentStock.pe },
-                  { k: 'Market Cap', v: currentStock.mktCap }
-                ].map(({ k, v }) => (
-                  <div key={k} style={{ background: '#f9fafb', borderRadius: 16, padding: '14px 16px' }}>
-                    <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 4 }}>{k}</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: 'black' }}>{v}</div>
+                  { k: 'Volume', v: currentStock.volume || '15.4L' },
+                  { k: 'Avg Price', v: `₹ ${currentStock.basePrice || 80}` },
+                  { k: 'P/E Ratio', v: currentStock.pe || 'Pre-Rev' },
+                  { k: 'Market Cap', v: currentStock.mktCap || '8.0 Cr' }
+                ].map(item => (
+                  <div key={item.k} style={{ background: '#f8fafc', padding: 20, borderRadius: 24, border: '1px solid #e2e8f0' }}>
+                    <p style={{ fontSize: 10, color: '#64748b', fontWeight: 800, margin: '0 0 6px 0', textTransform: 'uppercase' }}>{item.k}</p>
+                    <p style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', margin: 0 }}>{item.v}</p>
                   </div>
                 ))}
               </div>
 
-              <p style={{ fontSize: 13, color: '#4b5563', lineHeight: 1.6, marginBottom: 24, fontWeight: 500 }}>
-                {currentStock.desc}
-              </p>
+              {/* DETAILED SCORECARD INTEGRATION */}
+              {RESEARCH_REPORTS[stockId] && (() => {
+                const report = RESEARCH_REPORTS[stockId];
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+                    
+                    {/* MARKET OPPORTUNITY header */}
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                        <div style={{ width: 4, height: 20, background: '#7C3AED', borderRadius: 2 }}></div>
+                        <h3 style={{ fontWeight: 800, fontSize: 18, color: 'black', margin: 0 }}>Market Opportunity & Targets</h3>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        {report.metrics.slice(0, 4).map((m, i) => (
+                          <div key={i} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 24, padding: 18, boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                            <div style={{ fontSize: 10, color: '#64748b', fontWeight: 800, textTransform: 'uppercase', marginBottom: 4 }}>{m.label}</div>
+                            <div style={{ fontSize: 22, fontWeight: 900, color: i % 2 === 0 ? '#10b981' : '#f59e0b' }}>{m.value}</div>
+                            <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700, marginTop: 4 }}>{m.sub}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* SWOT ANALYSIS - PROPER SHARP BOXES */}
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ flex: 1, border: '1px solid #deeefc', background: '#f5faff', padding: '16px' }}>
+                        <div style={{ fontSize: 10, color: '#334155', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.8px' }}>OPPORTUNITIES</div>
+                        {report.swot.opportunities.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 6, fontSize: 11, lineHeight: 1.4, marginBottom: 10, fontWeight: 500, color: '#0f172a' }}>
+                            <span style={{ color: '#0369a1' }}>•</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ flex: 1, border: '1px solid #f9edd9', background: '#fff9ed', padding: '16px' }}>
+                        <div style={{ fontSize: 10, color: '#334155', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.8px' }}>THREATS</div>
+                        {report.swot.threats.map((item, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 6, fontSize: 11, lineHeight: 1.4, marginBottom: 10, fontWeight: 500, color: '#0f172a' }}>
+                            <span style={{ color: '#92400e' }}>•</span>
+                            <span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* WHY UNIQUE - ACCENT BAR */}
+                    <div style={{ borderLeft: '5px solid #0f172a', paddingLeft: 16 }}>
+                      <div style={{ fontSize: 10, color: '#334155', fontWeight: 800, textTransform: 'uppercase', marginBottom: 12, letterSpacing: '0.8px' }}>{report.uniquenessTitle || "WHAT MAKES XADS UNIQUE VS. THE MEDIA ANT / MYHOARDINGS"}</div>
+                      <p style={{ fontSize: 12, color: 'black', lineHeight: 1.6, fontWeight: 500, margin: 0 }}>
+                        {report.uniquenessProposition}
+                      </p>
+                    </div>
+
+                    {/* FINANCIALS & CHART SECTION */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                      <div>
+                        <div style={{ fontSize: 10, color: '#334155', fontWeight: 800, textTransform: 'uppercase', marginBottom: 16, letterSpacing: '0.8px' }}>FINANCIAL SNAPSHOT</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                          {(report.financialSnapshot || []).map((s, i) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: i === report.financialSnapshot.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#475569' }}>{s.label}</span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Revenue Chart - IMAGE ONLY */}
+                      <div style={{ background: 'white', borderRadius: 24, padding: report.graphImage ? '12px 0 24px' : '32px 24px', border: report.graphImage ? 'none' : '1.5px solid #e2e8f0', marginBottom: 32, textAlign: 'center' }}>
+                        {report.graphImage ? (
+                          <div style={{ width: '100%', overflow: 'hidden' }}>
+                            <img src={report.graphImage} alt="Revenue Projection" style={{ width: '100%', display: 'block' }} />
+                          </div>
+                        ) : (
+                          <div style={{ padding: '40px 0' }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: 12 }}>REVENUE PROJECTION</div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#64748b' }}>DATA UNDER REVIEW</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Quant Score & Risk Analysis */}
+                      {(report.quantScore || report.riskRegister) && (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: 16, marginBottom: 32 }}>
+                          {/* Quant Score Card */}
+                          {report.quantScore && (
+                            <div style={{ background: 'white', borderRadius: 24, padding: 24, border: '1.5px solid #e2e8f0' }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: 20 }}>QUANT SCORE</div>
+                              <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 56, fontWeight: 950, color: '#10b981', lineHeight: 1, fontFamily: "'DM Serif Display', serif" }}>{report.quantScore.total}</div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#64748b', marginTop: 8 }}>out of 100 &nbsp;·&nbsp; Grade: <span style={{ color: '#10b981' }}>{report.quantScore.grade}</span></div>
+                                <div style={{ height: 8, background: '#f1f5f9', borderRadius: 4, margin: '24px 0 12px', overflow: 'hidden' }}>
+                                  <div style={{ height: '100%', width: `${report.quantScore.total}%`, background: '#10b981', borderRadius: 4 }}></div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20 }}>
+                                {Object.entries(report.quantScore.subScores).map(([key, val]) => (
+                                  <div key={key} style={{ fontSize: 10, color: '#64748b', fontWeight: 700 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                                      <span style={{ textTransform: 'capitalize', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{key}</span>
+                                      <span style={{ color: val > 60 ? '#10b981' : '#f59e0b' }}>{val}</span>
+                                    </div>
+                                    <div style={{ height: 3, background: '#f1f5f9', borderRadius: 1.5 }}>
+                                      <div style={{ height: '100%', width: `${val}%`, background: val > 60 ? '#10b981' : '#f59e0b', borderRadius: 1.5 }}></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Risk Register Card */}
+                          {report.riskRegister && (
+                            <div style={{ background: 'white', borderRadius: 24, padding: 24, border: '1.5px solid #e2e8f0' }}>
+                              <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: 20 }}>RISK REGISTER</div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                {report.riskRegister.map((risk, idx) => (
+                                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid #f8fafc' }}>
+                                    <span style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>{risk.name}</span>
+                                    <span style={{ 
+                                      fontSize: 10, 
+                                      fontWeight: 800, 
+                                      padding: '4px 8px', 
+                                      borderRadius: 12, 
+                                      background: risk.level === 'HIGH' ? '#fef2f2' : (risk.level === 'MEDIUM' ? '#fffbeb' : '#f0fdf4'),
+                                      color: risk.level === 'HIGH' ? '#ef4444' : (risk.level === 'MEDIUM' ? '#d97706' : '#16a34a')
+                                    }}>{risk.level}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* MILESTONES / TRACTION SECTION */}
+                    <div>
+                      <div style={{ fontSize: 10, color: '#334155', fontWeight: 800, textTransform: 'uppercase', marginBottom: 24, letterSpacing: '0.8px' }}>{report.milestonesTitle || "PILOT MILESTONES (BENGALURU)"}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 32 }}>
+                        {report.milestones.map((m, i) => (
+                          <div key={i} style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 24, fontWeight: 950, color: (i === 3 || i === 4) ? '#10b981' : (i === 5 ? '#f59e0b' : (i === 0 ? '#c2410c' : '#0f172a')), fontFamily: "'DM Serif Display', serif" }}>{m.value}</div>
+                            <div style={{ fontSize: 9, fontWeight: 800, marginTop: 6, textTransform: 'uppercase', color: '#334155', opacity: 0.8, letterSpacing: '0.5px' }}>{m.label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* DYNAMIC ALERT BOX */}
+                    <div style={{ marginBottom: 32, padding: '16px 20px', background: report.alert?.type === 'ISA WATCH' ? '#fffbeb' : '#f8fafc', borderRadius: 12, display: 'flex', gap: 12, alignItems: 'flex-start', border: report.alert?.type === 'ISA WATCH' ? '1px solid #fef3c7' : '1px solid #f1f5f9' }}>
+                      <div style={{ color: report.alert?.type === 'ISA WATCH' ? '#d97706' : '#0f172a', marginTop: 2 }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12" y2="17.01"></line></svg>
+                      </div>
+                      <p style={{ fontSize: 11, lineHeight: 1.5, fontWeight: 700, color: report.alert?.type === 'ISA WATCH' ? '#92400e' : '#0f172a', margin: 0 }}>
+                        <span style={{ textTransform: 'uppercase' }}>{report.alert?.type || "Institutional Alert"}:</span> {report.alert?.text || "Due diligence is critical. Projections are based on current market velocity and verified traction data. Churn and unit economics must be tracked quarterly."}
+                      </p>
+                    </div>
+
+                    {/* CAP STRUCTURE & DEAL TERMS */}
+                    {report.dealTerms && (
+                      <div style={{ padding: 32, background: '#1e293b', borderRadius: 24, color: 'white' }}>
+                        <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 800, textTransform: 'uppercase', marginBottom: 24, letterSpacing: '0.8px' }}>CAP STRUCTURE & DEAL TERMS</div>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+                          {[...(report.dealTerms.founders || []), ...(report.dealTerms.others || [])].map((item, idx) => (
+                            <div key={idx} style={{ 
+                              background: 'rgba(255,255,255,0.05)', 
+                              borderRadius: 16, 
+                              padding: '16px 8px', 
+                              textAlign: 'center',
+                              border: item.name === 'THIS RAISE' ? '1px solid #3b82f6' : 'none'
+                            }}>
+                              <div style={{ fontSize: 8, color: '#94a3b8', textTransform: 'uppercase', marginBottom: 4 }}>{item.name}</div>
+                              <div style={{ fontSize: 24, fontWeight: 900, marginBottom: 2, color: item.name === 'THIS RAISE' ? '#3b82f6' : 'white' }}>{item.stake}</div>
+                              <div style={{ fontSize: 8, color: '#64748b', textTransform: 'uppercase' }}>{item.role}</div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Summary Row */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                           <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                             <div style={{ fontSize: 8, fontWeight: 800, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>INSTRUMENT</div>
+                             <div style={{ fontSize: 12, fontWeight: 700 }}>{report.dealTerms.instrument}</div>
+                           </div>
+                           <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                             <div style={{ fontSize: 8, fontWeight: 800, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>MIN. TICKET</div>
+                             <div style={{ fontSize: 12, fontWeight: 700 }}>{report.dealTerms.minTicket}</div>
+                           </div>
+                           <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 12 }}>
+                             <div style={{ fontSize: 8, fontWeight: 800, color: '#64748b', marginBottom: 4, textTransform: 'uppercase' }}>IPO PRICE</div>
+                             <div style={{ fontSize: 12, fontWeight: 700 }}>{report.dealTerms.virtualIpoPrice}</div>
+                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>

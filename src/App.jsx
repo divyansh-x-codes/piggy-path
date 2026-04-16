@@ -11,6 +11,8 @@ import Bucket from './screens/Bucket';
 import IPO from './screens/IPO';
 import Watchlist from './screens/Watchlist';
 import Analysis from './screens/Analysis';
+import AdminPanel from './screens/AdminPanel';
+import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
@@ -24,22 +26,29 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 const RootContent = () => {
-  const { user, currentScreen } = useAppContext();
+  const { user, loading } = useAppContext();
 
   return (
     <div className="screen active" style={{ animation: 'none' }}>
       <Routes>
+        {/* PUBLIC ROUTES */}
         <Route path="/" element={<Splash />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/stocks" element={<Stocks />} />
-        <Route path="/stock/:stockId" element={<StockDetail />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/news" element={<News />} />
-        <Route path="/bucket" element={<Bucket />} />
-        <Route path="/ipo" element={<IPO />} />
-        <Route path="/watchlist" element={<Watchlist />} />
-        <Route path="/analysis/:stockId" element={<Analysis />} />
+
+        {/* AUTHENTICATED ROUTES */}
+        <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/stocks" element={<ProtectedRoute><Stocks /></ProtectedRoute>} />
+        <Route path="/stock/:stockId" element={<ProtectedRoute><StockDetail /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/news" element={<ProtectedRoute><News /></ProtectedRoute>} />
+        <Route path="/bucket" element={<ProtectedRoute><Bucket /></ProtectedRoute>} />
+        <Route path="/ipo" element={<ProtectedRoute><IPO /></ProtectedRoute>} />
+        <Route path="/watchlist" element={<ProtectedRoute><Watchlist /></ProtectedRoute>} />
+        <Route path="/analysis/:stockId" element={<ProtectedRoute><Analysis /></ProtectedRoute>} />
+
+        {/* ADMIN ROUTES */}
+        <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPanel /></ProtectedRoute>} />
+
         {/* Redirect unknown routes to home or splash */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

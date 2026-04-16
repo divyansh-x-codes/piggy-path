@@ -20,7 +20,9 @@ export const AppProvider = ({ children }) => {
   const [currentStock, setCurrentStock] = useState(null);
 
   const [user, setUser] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [userData, setUserData] = useState({ balance: 100000 });
+  const [loading, setLoading] = useState(true);
   const [portfolio, setPortfolio] = useState({ holdings: {} }); // STRICT STRUCTURE
   const [stocks, setStocks] = useState({});
   const [ipoOrders, setIpoOrders] = useState([]);
@@ -29,32 +31,63 @@ export const AppProvider = ({ children }) => {
   // ─── AUTH LISTENER ────────────────────────────────────────────────────────
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser);
-      if (firebaseUser) {
-        // Ensure user doc exists
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const userSnap = await getDoc(userRef);
-        if (!userSnap.exists()) {
-          tx.set(userRef, { balance: 100000, createdAt: Date.now() });
-        }
+      console.log("AUTH_STATE_CHANGE:", firebaseUser?.uid || 'NO_USER');
 
-        if (window.location.pathname === '/' || window.location.pathname === '/auth') {
-          navigate('/home');
+      if (firebaseUser) {
+        // Fetch profile once to set isAdmin before finishing loading
+        try {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
+
+          const isSuperAdmin = firebaseUser.email === 'simplydivyanshk@gmail.com';
+
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            console.log("PROFILE_LOADED:", data.role);
+            setUserData(data);
+            setIsAdmin(isSuperAdmin || data.role === 'admin');
+          } else {
+            console.log("PROFILE_MISSING - Initializing...");
+            setIsAdmin(isSuperAdmin); // superadmin gets access even if doc is new
+            // Optional: Create profile if missing
+            const initialData = { balance: 100000, createdAt: Date.now() };
+            // ...
+          }
+        } catch (e) {
+          console.error("Auth Profile Fetch Error:", e);
         }
+        setUser(firebaseUser);
       } else {
-        navigate('/auth');
+        console.log("USER_LOGGED_OUT");
+        setUser(null);
+        setIsAdmin(false);
+        setUserData({ balance: 100000 });
       }
+
+      setLoading(false);
     });
     return unsubscribe;
-  }, [navigate]);
+  }, []);
+
+  // Debug Logs
+  useEffect(() => {
+    console.log("USER:", user?.uid);
+    console.log("ADMIN:", isAdmin);
+    console.log("LOADING:", loading);
+  }, [user, isAdmin, loading]);
 
   // ─── FIRESTORE LISTENERS ──────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
 
-    // 1. User Profile Listener
+    // 1. User Profile Listener (keep for real-time balance updates)
     const userUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
-      if (snap.exists()) setUserData(snap.data());
+      if (snap.exists()) {
+        const data = snap.data();
+        const isSuperAdmin = user.email === 'simplydivyanshk@gmail.com';
+        setUserData(data);
+        setIsAdmin(isSuperAdmin || data.role === 'admin');
+      }
     });
 
     // 2. Portfolio Listener - STRICT holdings structure
@@ -69,24 +102,29 @@ export const AppProvider = ({ children }) => {
     };
   }, [user]);
 
-  // 3. Global Stocks Listener + Auto-Seed
+  // 3. Global Stocks Listener + Auto-Seed Migration
   useEffect(() => {
     const stocksUnsub = onSnapshot(collection(db, 'stocks'), async (snap) => {
-      if (snap.empty && user) {
-        console.log('[Firestore] Empty stocks detected. Auto-seeding...');
+      // Check if we need to migrate (old stocks present or empty)
+      const hasOldStocks = snap.docs.some(doc => !MOCK_STOCKS.find(s => s.id === doc.id));
+      
+      if ((snap.empty || hasOldStocks) && user) {
+        console.log('[Firestore] Migration/Seed detected...');
         for (const stock of MOCK_STOCKS) {
           try {
+            const ref = doc(db, 'stocks', stock.id);
             await runTransaction(db, async (tx) => {
-              const ref = doc(db, 'stocks', stock.id);
               tx.set(ref, {
                 name: stock.name,
                 symbol: stock.ticker,
                 price: stock.basePrice,
+                prevPrice: stock.basePrice,
                 history: [stock.basePrice],
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
+                lastUpdated: serverTimestamp()
               });
             });
-          } catch (e) { console.error('Auto-seed failed', e); }
+          } catch (e) { console.error('Seed/Migration failed', e); }
         }
         return;
       }
@@ -99,10 +137,12 @@ export const AppProvider = ({ children }) => {
 
       if (!currentStock && snap.docs.length > 0) {
         const firstId = snap.docs[0].id;
-        setCurrentStock(MOCK_STOCKS.find(s => s.id === firstId) || snap.docs[0].data());
+        const meta = MOCK_STOCKS.find(s => s.id === firstId) || snap.docs[0].data();
+        setCurrentStock(meta);
       }
     });
-    return stocksUnsub;
+
+    return () => stocksUnsub();
   }, [user, currentStock]);
 
   const getPrice = useCallback((s) => {
@@ -136,7 +176,8 @@ export const AppProvider = ({ children }) => {
     const qty = parseInt(quantity) || 0;
     if (qty <= 0) return { success: false, error: 'Invalid quantity' };
 
-    const stockRef = doc(db, "stocks", stockId);
+    const sid = stockId.toLowerCase();
+    const stockRef = doc(db, "stocks", sid);
     const userRef = doc(db, "users", user.uid);
     const portfolioRef = doc(db, "portfolios", user.uid);
 
@@ -152,64 +193,46 @@ export const AppProvider = ({ children }) => {
         const price = stockSnap.data().price;
         const totalValue = price * qty;
 
+        // Common Portfolio Setup
+        const holdings = portfolioSnap.exists() ? portfolioSnap.data().holdings || {} : {};
+        const current = holdings[sid] || { qty: 0, avgPrice: 0 };
+
         if (type === 'buy') {
           if (userSnap.data().balance < totalValue) throw "Insufficient balance";
 
           // 1. Deduct Balance
-          tx.update(userRef, {
-            balance: userSnap.data().balance - totalValue
-          });
+          tx.update(userRef, { balance: userSnap.data().balance - totalValue });
 
           // 2. Update Portfolio
-          const holdings = portfolioSnap.exists() ? portfolioSnap.data().holdings || {} : {};
-          const current = holdings[stockId] || { qty: 0, avgPrice: 0 };
           const newQty = current.qty + qty;
           const newAvg = (current.qty * current.avgPrice + qty * price) / newQty;
 
-          holdings[stockId] = { qty: newQty, avgPrice: newAvg };
-          tx.set(portfolioRef, { holdings }, { merge: true });
+          holdings[sid] = { qty: newQty, avgPrice: newAvg };
+          tx.update(portfolioRef, { holdings });
 
           // 3. GLOBAL PRICE IMPACT (+2%)
           const newPrice = +(price * 1.02).toFixed(2);
           const history = stockSnap.data().history || [];
-          const newHistory = [...history.slice(-49), newPrice];
-
-          tx.update(stockRef, {
-            price: newPrice,
-            history: newHistory,
-            updatedAt: Date.now()
-          });
+          tx.update(stockRef, { price: newPrice, history: [...history.slice(-49), newPrice], updatedAt: Date.now() });
 
         } else {
           // SELL
-          const holdings = portfolioSnap.exists() ? portfolioSnap.data().holdings || {} : {};
-          const current = holdings[stockId] || { qty: 0, avgPrice: 0 };
           if (current.qty < qty) throw "Insufficient holdings";
 
           // 1. Add to Balance
-          tx.update(userRef, {
-            balance: userSnap.data().balance + totalValue
-          });
+          tx.update(userRef, { balance: userSnap.data().balance + totalValue });
 
           // 2. Update Portfolio
           const newQty = current.qty - qty;
-          if (newQty <= 0) {
-            delete holdings[stockId];
-          } else {
-            holdings[stockId] = { ...current, qty: newQty };
-          }
-          tx.set(portfolioRef, { holdings }, { merge: true });
+          if (newQty <= 0) delete holdings[sid];
+          else holdings[sid] = { ...current, qty: newQty };
+
+          tx.update(portfolioRef, { holdings });
 
           // 3. GLOBAL PRICE IMPACT (-2%)
           const newPrice = +(price * 0.98).toFixed(2);
           const history = stockSnap.data().history || [];
-          const newHistory = [...history.slice(-49), newPrice];
-
-          tx.update(stockRef, {
-            price: newPrice,
-            history: newHistory,
-            updatedAt: Date.now()
-          });
+          tx.update(stockRef, { price: newPrice, history: [...history.slice(-49), newPrice], updatedAt: Date.now() });
         }
       });
       return { success: true };
@@ -229,8 +252,10 @@ export const AppProvider = ({ children }) => {
             name: stock.name,
             symbol: stock.ticker,
             price: stock.basePrice,
+            prevPrice: stock.basePrice,
             history: [stock.basePrice],
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
+            lastUpdated: serverTimestamp()
           });
         });
       } catch (e) {
@@ -250,6 +275,8 @@ export const AppProvider = ({ children }) => {
       portfolio, tradeHistory: [],
       currentStock, setCurrentStock,
       ipoOrders, watchlist, setWatchlist, userData, setUserData, user,
+      isAdmin, loading,
+      stocks, // Add this
       getPrice, getChange, getPriceHistory, getPortfolioValue,
       confirmTrade, applyIPO, forceSeed,
       STOCKS: MOCK_STOCKS

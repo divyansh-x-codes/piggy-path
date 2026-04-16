@@ -13,10 +13,13 @@ const firebaseConfig = {
   measurementId: "G-P9T3TP1MS8"
 };
 
+import { getMessaging } from "firebase/messaging";
+
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const functions = getFunctions(app);
+export const messaging = getMessaging(app);
 export const provider = new GoogleAuthProvider();
 
 export default app;
