@@ -6,7 +6,7 @@ import { BottomNav } from '../components/Shared';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { stocks, isAdmin } = useAppContext();
+  const { stocks, isAdmin, resetData } = useAppContext();
 
   // Internal state to track the "Visual" order for sequential movement
   const [displayedList, setDisplayedList] = useState([]);
@@ -105,12 +105,37 @@ const AdminPanel = () => {
       {/* HEADER - MATCHING SCREENSHOT */}
       <div style={{ padding: '32px 24px 24px', background: 'transparent' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>MARKET TERMINAL</h1>
-          <span style={{ fontSize: '11px', fontWeight: '700', color: '#475569', opacity: 0.8 }}>{finalRenderList.length} Companies Tracked</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#10B981', borderRadius: '50%' }}></div>
-          <span style={{ fontSize: '10px', fontWeight: '900', color: '#10B981', letterSpacing: '1px', textTransform: 'uppercase' }}>Pure Realtime Sync</span>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>MARKET TERMINAL</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+              <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#10B981', borderRadius: '50%' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: '900', color: '#10B981', letterSpacing: '1px', textTransform: 'uppercase' }}>Pure Realtime Sync</span>
+            </div>
+          </div>
+          
+          <button 
+            onClick={async () => {
+              if (window.confirm("RESET EVERYTHING? Total holdings will be zero and prices will reset to 80.")) {
+                const res = await resetData();
+                if (res.success) alert("Application Reset Successfully!");
+                else alert("Reset Failed: " + res.error);
+              }
+            }}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '12px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#EF4444',
+              fontSize: '11px',
+              fontWeight: '900',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '1px'
+            }}
+          >
+            Reset App
+          </button>
         </div>
       </div>
 

@@ -12,11 +12,10 @@ const StockDetail = () => {
   const navigate = useNavigate();
   const {
     portfolio, getPrice, getChange, userData,
-    confirmTrade, STOCKS
+    confirmTrade, STOCKS, resetData, isAdmin
   } = useAppContext();
 
   // ─── ALL STATE ──────────────────────────────────────────────────────────
-  const [range, setRange] = useState('2y');
   const [tab, setTab] = useState('overview');
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState('buy');
@@ -25,15 +24,20 @@ const StockDetail = () => {
   const [loading, setLoading] = useState(false);
   const [liveStock, setLiveStock] = useState(null);
 
-  // ─── REAL-TIME PRICE + GRAPH LISTENER — BASED ON URL stockId ─────────────
+  // ─── REAL-TIME PRICE & HISTORY LISTENER ────────────────────────────────
   useEffect(() => {
     if (!stockId) return;
 
-    console.log("[Firestore] Attaching listener for stockId:", stockId);
-    const unsub = onSnapshot(doc(db, 'stocks', stockId), (snap) => {
+    console.log("[Firestore] Subscribing to stockId:", stockId);
+    const unsub = onSnapshot(doc(db, 'stocks', stockId.toLowerCase()), (snap) => {
       if (snap.exists()) {
+        console.log("[Firestore] Live update for", stockId, snap.data().price);
         setLiveStock({ id: snap.id, ...snap.data() });
+      } else {
+        console.warn("[Firestore] Stock not found:", stockId);
       }
+    }, (err) => {
+      console.error("Stock Detail Sync Error:", err);
     });
 
     return () => unsub();
@@ -53,10 +57,13 @@ const StockDetail = () => {
   // Real-time graph: history array lives in Firestore stock doc
   const rawHistory = Array.isArray(liveStock?.history) ? liveStock.history : [];
 
-  // GUARANTEED FALLBACK — chart is NEVER empty
-  const safeGraphData = rawHistory.length > 0
+  // GUARANTEED RENDERING — Chart.js needs 2+ points to draw a line
+  // If we only have 1 point, synthesize a "previous" point to give it some shape
+  const safeGraphData = rawHistory.length > 1
     ? rawHistory
-    : [price || 0];
+    : (rawHistory.length === 1 
+        ? [rawHistory[0] * 0.995, rawHistory[0]] 
+        : [price * 0.995, price]);
 
   const startPrice = safeGraphData[0] || price || 0;
   const isUp = price >= startPrice;
@@ -102,24 +109,39 @@ const StockDetail = () => {
 
   // ─── TRADE HANDLER ────────────────────────────────────────────────────────
   const handleConfirmTrade = async () => {
+    if (loading) return;
     setLoading(true);
+    console.log("[Trade] Starting trade:", tradeType, stockId, tradeQty);
+    
     try {
       const result = await confirmTrade(tradeType, stockId, tradeQty);
+      console.log("[Trade] Result:", result);
+
       if (!result.success) {
-        alert(result.error);
+        alert("Transaction Failed: " + (result.error || "Unknown Error"));
         setLoading(false);
         return;
       }
 
       const msg = tradeType === 'buy'
-        ? `✅ Bought ${tradeQty} share(s) of ${currentStock.name}!`
-        : `✅ Sold ${tradeQty} share(s) of ${currentStock.name}!`;
+        ? `✅ Successfully bought ${tradeQty} share(s)!`
+        : `✅ Successfully sold ${tradeQty} share(s)!`;
       setShowConfirm(msg);
-      setTimeout(() => { setTradeModalOpen(false); setShowConfirm(''); }, 1200);
+      
+      // Keep loading true while the success message is shown
+      setTimeout(() => { 
+        setTradeModalOpen(false); 
+        setShowConfirm(''); 
+        setLoading(false);
+      }, 1500);
+      
     } catch (err) {
-      alert('Trade failed: ' + err.toString());
-    } finally {
+      console.error("[Trade] Critical Error:", err);
+      alert('System error during trade. Please try again or refresh.');
       setLoading(false);
+    } finally {
+      // If we didn't show the success confirm message, we must reset loading now
+      // Success path handles its own reset via the timeout above
     }
   };
 
@@ -131,8 +153,19 @@ const StockDetail = () => {
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', background: 'white' }}>
-        <div onClick={goBack} style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div onClick={goBack} style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          </div>
+          {isAdmin && (
+            <div onClick={async () => {
+              if (window.confirm("RESET EVERYTHING?")) {
+                await resetData();
+              }
+            }} style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid #fee2e2', background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+            </div>
+          )}
         </div>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: 'black' }}>{currentStock.name}</div>
@@ -163,17 +196,22 @@ const StockDetail = () => {
 
           {/* THE GRAPH */}
           <div style={{ position: 'relative', width: '100%', height: 160, marginBottom: 12 }}>
-            <Line key={`${currentStock.id}-${range}`} data={chartData} options={chartOptions} />
+            <Line key={`${currentStock.id}`} data={chartData} options={chartOptions} />
           </div>
 
-          {/* Range Buttons */}
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'center', padding: '0 16px' }}>
-            {[['6m', '6 MON'], ['1y', '12 MON'], ['2y', '2 YEAR']].map(([r, label]) => (
-              <button key={r} onClick={() => setRange(r)} style={{ padding: '8px 18px', borderRadius: 50, fontSize: 11, fontWeight: 700, cursor: 'pointer', border: range === r ? 'none' : '1px solid #e5e7eb', background: range === r ? '#7C3AED' : 'white', color: range === r ? 'white' : 'black' }}>
-                {label}
-              </button>
-            ))}
+          {/* Live Indicator */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e', animation: 'pulse 2s infinite' }}></div>
+            <span style={{ fontSize: 11, fontWeight: 800, color: '#22c55e', letterSpacing: '1px' }}>LIVE MARKET</span>
           </div>
+
+          <style>{`
+            @keyframes pulse {
+              0% { opacity: 1; transform: scale(1); }
+              50% { opacity: 0.5; transform: scale(1.2); }
+              100% { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
         </div>
 
         {/* BUY / SELL / NEWS */}

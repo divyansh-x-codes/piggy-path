@@ -24,11 +24,15 @@ const Profile = () => {
   const pnlPercent = totalInvested > 0 ? ((totalPnL / totalInvested) * 100).toFixed(2) : '0.00';
 
   // Realtime Leaderboard Listener
+  // One-time Leaderboard Fetch
   React.useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'leaderboard', 'global'), (snap) => {
-      if (snap.exists()) setLeaderboard(snap.data());
-    });
-    return () => unsub();
+    const fetchLeaderboard = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'leaderboard', 'global'));
+        if (snap.exists()) setLeaderboard(snap.data());
+      } catch (err) { console.error("Leaderboard fetch error:", err); }
+    };
+    fetchLeaderboard();
   }, []);
 
   return (

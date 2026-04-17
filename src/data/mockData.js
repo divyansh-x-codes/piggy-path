@@ -143,6 +143,86 @@ export const STOCKS = [
     eps: 'N/A', 
     mktCap: '13.3 Cr' 
   },
+  { 
+    id: 'snac', 
+    name: 'SnacQo', 
+    ticker: 'SNAC', 
+    logo: 'SNQ', 
+    color: '#b91c1c', 
+    sector: 'FMCG / Health-Snacks', 
+    desc: 'Smart Snacking: Premium Flavored Nuts & Seeds. O2O strategy focusing on high-density corporate environments (Cyberscape/M3M).', 
+    basePrice: 133, 
+    change: 0.0, 
+    volume: '4.2L', 
+    avgPrice: 133, 
+    pe: '7.5x P/S', 
+    eps: 'N/A', 
+    mktCap: '1.33 Cr' 
+  },
+  { 
+    id: 'piggy', 
+    name: 'PiggyPath', 
+    ticker: 'PIGGY', 
+    logo: 'PGP', 
+    color: '#581c87', 
+    sector: 'EdTech / Fin-Lit', 
+    desc: 'Gamified Financial Literacy Platform for Indias Youth. Focused on Gen Z with localized Indian content (Tax, UPI, NSE/BSE).', 
+    basePrice: 150, 
+    change: 0.0, 
+    volume: '5.8L', 
+    avgPrice: 150, 
+    pe: 'Pre-Rev', 
+    eps: 'N/A', 
+    mktCap: '1.5 Cr' 
+  },
+  { 
+    id: 'proqm', 
+    name: 'Proquoment', 
+    ticker: 'PROQM', 
+    logo: 'PRQ', 
+    color: '#1e1b4b', 
+    sector: 'B2B / Cross-Border', 
+    desc: 'Full-stack cross-border B2B procurement platform. AI-powered documentation and compliance for Indian MSME exporters.', 
+    basePrice: 142.5, 
+    change: 0.0, 
+    volume: '2.4L', 
+    avgPrice: 142.5, 
+    pe: '14.2x P/S', 
+    eps: 'N/A', 
+    mktCap: '14.2 Cr' 
+  },
+  { 
+    id: 'elite', 
+    name: 'Elite Vendz', 
+    ticker: 'ELITE', 
+    logo: 'ELV', 
+    color: '#065f46', 
+    sector: 'Healthy Vending', 
+    desc: 'Smart automated beverage kiosks for fresh smoothies & protein shakes. Targeting high-footfall gyms and corporate hubs with <60s dispense time.', 
+    basePrice: 115, 
+    change: 0.0, 
+    volume: '3.1L', 
+    avgPrice: 115, 
+    pe: 'Pre-Revenue', 
+    eps: 'N/A', 
+    mktCap: '1.15 Cr' 
+  },
+  { 
+    id: 'mookh', 
+    name: 'Mookh AI', 
+    ticker: 'MOOKH', 
+    logo: 'MOK', 
+    color: '#5b21b6', 
+    sector: 'HealthTech / Assistive AI', 
+    desc: 'Real-time voice generation for non-verbal communicators. Ultra-low latency sensor fusion technology bridge the communication gap.', 
+    basePrice: 140, 
+    change: 0.0, 
+    volume: '1.8L', 
+    avgPrice: 140, 
+    pe: 'Pre-Rev (Series A)', 
+    eps: 'N/A', 
+    mktCap: '14.0 Cr' 
+  },
 ];
 
 export const NEWS = [
@@ -156,6 +236,11 @@ export const NEWS = [
   { id: 8, cat: 'HealthTech', stock: 'MediNearby', ticker: 'MDNB', title: 'MediNearby Scales to 556 Providers in 4 Cities', body: 'MediNearby achieves 14,500 monthly bookings with a 71 NPS, driven by its 8-language localized interface.', change: '+22% MoM' },
   { id: 9, cat: 'AgriFinTech', stock: 'KisanPay', ticker: 'KSPAY', title: 'KisanPay AUM Crosses ₹1.85 Cr with 96% Repayment', body: 'KisanPay achieves best-in-class 10.6x LTV/CAC using USSD technology to serve rural farmers excluded from traditional credit.', change: '+21% ARR' },
   { id: 10, cat: 'AgriFinTech', stock: 'CropPe', ticker: 'CRPP', title: 'CropPe Disrupts Agri-Credit with 17x Dealer LTV/CAC', body: 'CropPe scales its dealer-embedded BNPL model to 180 partners, achieving 96.8% repayment across a ₹7.4 Cr loan book.', change: '+21% ARR' },
+  { id: 11, cat: 'Consumer', stock: 'SnacQo', ticker: 'SNAC', title: 'SnacQo Hits ₹40K Revenue in Launch Month', body: 'SnacQo validates its O2O model with ₹15.5K peak daily sales at Cyberscape corporate hub, driven by high repeat behavior.', change: '+40K Rev' },
+  { id: 12, cat: 'EdTech', stock: 'PiggyPath', ticker: 'PIGGY', title: 'PiggyPath Launch: Targeting 40M+ Youth', body: 'Finanza Verified platform PiggyPath launches gamified financial literacy v2, focusing on UPI and Indian tax education for Gen Z.', change: 'Hot' },
+  { id: 13, cat: 'Trade', stock: 'Proquoment', ticker: 'PROQM', title: 'Proquoment Scales to 10k+ Verified Manufacturers', body: 'B2B platform Proquoment achieves 99.5% compliance accuracy using AI, helping MSMEs capture the China+1 global trade shift.', change: '+25% Ops' },
+  { id: 14, cat: 'Retail', stock: 'Elite Vendz', ticker: 'ELITE', title: 'Elite Vendz Completes Pilot at RU', body: 'Smart vending startup Elite Vendz successfully completes Phase 2 pilot, preparing for rapid expansion into Tier-1 gyms and corporate offices.', change: 'Scale-Up' },
+  { id: 15, cat: 'HealthTech', stock: 'Mookh AI', ticker: 'MOOKH', title: 'Mookh AI Series A: $8M Raising Goal', body: 'Assistive AI startup Mookh AI targets Series A funding to scale its privacy-first communication platform for non-verbal users.', change: '+Series A' },
 ];
 
 export const RESEARCH_REPORTS = {
@@ -1003,6 +1088,471 @@ export const RESEARCH_REPORTS = {
       { label: 'Y4', val1: 2400, val2: 680 },
     ],
     alert: { text: "Dual Risk Alert: 5 months cash remaining. NPA revised 1.8% → 3.2% due to dealer-level churn in Maharashtra cluster. Raise essential for FY26 growth." },
+    graphImage: null
+  },
+  snac: {
+    name: 'SnacQo',
+    ticker: 'SNAC',
+    logo: 'SNQ',
+    sector: 'FMCG / Health-Snacks',
+    price: 133.00,
+    ipoPrice: 133,
+    mktCap: '₹1.33 Cr',
+    tags: ['40K Rev in < 1mo', 'FMCG / Health-Snacks', 'O2O Strategy', '₹15.5K Single Day Sales', 'Strong Repeat Base', 'Pre-Seed'],
+    metrics: [
+      { label: 'Initial Rev', value: '₹40,000', sub: 'In less than 30 days' },
+      { label: 'Peak Daily', value: '₹15,556', sub: 'Highest recorded sales' },
+      { label: 'Avg Ticket', value: '₹350', sub: 'Typical customer spend' },
+      { label: 'Market Cap \'34', value: '₹1.03T', sub: 'India Snacking Projection' },
+      { label: 'Market CAGR', value: '8.3%', sub: '2026 - 2034 forecast' },
+      { label: 'Unit Count', value: '3 Stalls', sub: 'Cyberscape + M3M' },
+      { label: 'Valuation Cap', value: '₹13.33L', sub: 'Current Equity Ask' },
+      { label: 'Market Target', value: 'Urban Prof.', sub: 'Primary Cohort' }
+    ],
+    quantScore: {
+      total: 74,
+      grade: 'B+',
+      subScores: {
+        tractionVelocity: 89,
+        customerLTV: 82,
+        capitalEfficiency: 76,
+        flavorMoat: 65,
+        supplyChain: 58,
+        brandMoat: 45
+      }
+    },
+    rating: {
+      status: 'SPECULATIVE BUY',
+      conviction: 3.2,
+      bull: 250,
+      base: 133,
+      bear: 45,
+      targetRange: '₹80 – ₹450',
+      summary: '"SnacQo has demonstrated rapid validation in high-density corporate environments. Their ability to command high average order values for flavored nuts indicates a strong appetite for premium \'better-for-you\' alternatives. The immediate challenge is scaling production while maintaining quality."'
+    },
+    swot: {
+      strengths: [
+        "High repeat purchase rate in corporate hubs",
+        "Premium product perception (Pizza Cashew)",
+        "Low burn rate / capital-efficient launch"
+      ],
+      weaknesses: [
+        "Geographic concentration (Cyberscape focal)",
+        "Early stage digital infrastructure",
+        "Limited historical data on retention"
+      ],
+      opportunities: [
+        "B2B Corporate gifting and office pantry",
+        "Expansion into Quick-Commerce (Blinkit)",
+        "Healthy snack bars brand extension"
+      ],
+      threats: [
+        "Incumbents entering specialty nuts",
+        "Shifting preference to seed-only diets"
+      ]
+    },
+    uniquenessTitle: "WHAT MAKES SNACQO UNIQUE",
+    uniquenessProposition: "SnacQo has demonstrated rapid validation in high-density corporate environments (Cyberscape). Their ability to command high average order values (₹350-₹1000) for flavored nuts indicates a strong appetite for premium 'better-for-you' alternatives compared to mass-market snacks.",
+    financialSnapshot: [
+      { label: 'Total Sales (30d)', value: '₹39,292', color: 'black' },
+      { label: 'Avg Spend', value: '₹350', color: '#0369a1' },
+      { label: 'Equity Offer', value: '6%', color: '#16A34A' },
+      { label: 'Status', value: 'FSSAI Certified', color: '#16A34A' },
+      { label: 'Funding Ask', value: '₹80,000', color: 'black' }
+    ],
+    riskRegister: [
+      { name: 'Raw material price volatility', level: 'HIGH' },
+      { name: 'Low barrier to flavor copycats', level: 'HIGH' },
+      { name: 'Retail location dependency', level: 'MEDIUM' },
+      { name: 'Shelf-life integrity', level: 'LOW' }
+    ],
+    milestones: [
+      { label: 'Brand Est.', value: "Feb '25" },
+      { label: '1st Stall', value: "Feb '26" },
+      { label: 'Current Rev', value: '₹40K' },
+      { label: 'Equity Ask', value: '6%' },
+      { label: 'Target Rais.', value: '₹80K' },
+      { label: 'Status', value: 'Verified' }
+    ],
+    projections: [
+      { label: 'Feb 25', val1: 0, val2: 0 },
+      { label: 'Feb 26', val1: 15, val2: -5 },
+      { label: 'Mar 26', val1: 40, val2: 5 },
+      { label: 'Apr 26', val1: 100, val2: 25 },
+    ],
+    alert: { text: "✓ Finanza Verified — Smart snacking unit economics validated. Raising ₹80k to optimize production and expand stall presence. Funding Note: High demand recorded at Cyberscape." },
+    graphImage: null
+  },
+  piggy: {
+    name: 'PiggyPath',
+    ticker: 'PIGGY',
+    logo: 'PGP',
+    sector: 'EdTech / Fin-Lit',
+    price: 150.00,
+    ipoPrice: 150,
+    mktCap: '₹1.50 Cr',
+    tags: ['78% Gross Margin', 'Gamified SaaS', 'Mobile-First', 'Gen Z Focused', 'B2B + B2C', 'Local Content Moat'],
+    metrics: [
+      { label: 'Y3 Revenue', value: '₹320L', sub: 'Projected annual' },
+      { label: 'Conversion', value: '5%', sub: 'User conversion rate' },
+      { label: 'Active Users', value: '20K', sub: 'Scaling target' },
+      { label: 'Youth Pop.', value: '40M+', sub: 'Aged 15-35 in India' },
+      { label: 'Market Value', value: '$12.7B', sub: 'Global industry 2033' },
+      { label: '6mo Revenue', value: '₹32L', sub: 'Post-launch target' },
+      { label: 'Gross Margin', value: '78%', sub: 'SaaS infrastructure' },
+      { label: 'Operational Burn', value: '₹3.67L', sub: 'Total 6-month budget' }
+    ],
+    quantScore: {
+      total: 82,
+      grade: 'A-',
+      subScores: {
+        engagementMoat: 88,
+        marginEfficiency: 85,
+        marketFit: 92,
+        scalability: 78,
+        burnManagement: 72,
+        competitiveEdge: 80
+      }
+    },
+    rating: {
+      status: 'OVERWEIGHT',
+      conviction: 4.2,
+      bull: 320,
+      base: 150,
+      bear: 60,
+      targetRange: '₹120 – ₹450',
+      summary: '"PiggyPath targets a massive white space: the 80% of Indian youth without financial literacy. By gamifying financial education, the team creates a psychological moat. High gross margins (78%) and diversified revenue streams provide a strong path to profitability."'
+    },
+    swot: {
+      strengths: [
+        "Localization: Indian tax, UPI, & local market focus",
+        "Psychologically addictive gamification UI",
+        "High Gross Margins (78%) via automated SaaS",
+        "Mobile-first approach for Gen Z & youth"
+      ],
+      weaknesses: [
+        "Early stage MVP testing phase",
+        "Low initial marketing budget",
+        "Heavy reliance on user conversion rates (5%)"
+      ],
+      opportunities: [
+        "Global expansion to other developing economies",
+        "Bulk deals with corporates for wellness",
+        "Ad revenue from financial product partnerships"
+      ],
+      threats: [
+        "Traditional finance apps adding gamification",
+        "Market consolidation by global platforms"
+      ]
+    },
+    uniquenessTitle: "WHAT MAKES PIGGYPATH UNIQUE",
+    uniquenessProposition: "PiggyPath targets a massive white space: the 80% of Indian youth without financial literacy. While global giants like Duolingo have the engagement, they lack the local relevance (UPI, Indian Tax, NSE/BSE). By gamifying financial education, the team creates a psychological moat.",
+    financialSnapshot: [
+      { label: 'Year 1 Revenue', value: '₹60 Lakhs', color: 'black' },
+      { label: 'Year 3 Revenue', value: '₹320 Lakhs', color: '#16A34A' },
+      { label: 'Gross Margin', value: '78%', color: '#16A34A' },
+      { label: 'Conversion Rate', value: '5%', color: 'black' },
+      { label: 'Operational Burn', value: '₹3.67L', color: '#B45309' }
+    ],
+    riskRegister: [
+      { name: 'User retention (post-game)', level: 'MEDIUM' },
+      { name: 'B2B sales cycle for colleges', level: 'MEDIUM' },
+      { name: 'Tech infrastructure scaling', level: 'LOW' },
+      { name: 'Competitor updates', level: 'LOW' }
+    ],
+    milestones: [
+      { label: 'M1-2', value: 'Launch' },
+      { label: 'M3', value: 'Retention' },
+      { label: 'M5', value: 'B2B Scaling' },
+      { label: 'M6', value: 'Growth' },
+      { label: 'Y2', value: 'Pan-India' },
+      { label: 'KPI', value: '5% Conv.' }
+    ],
+    projections: [
+      { label: 'Year 1', val1: 60, val2: -3 },
+      { label: 'Year 2', val1: 140, val2: 20 },
+      { label: 'Year 3', val1: 320, val2: 85 },
+    ],
+    alert: { text: "✓ Finanza Verified — EdTech gamification model and youth financial literacy SAM validated. Localized Indian content strategy (Tax, UPI) confirmed. Revenue scaling projected for Q3-Q4." },
+    graphImage: null
+  },
+  proqm: {
+    name: 'Proquoment',
+    ticker: 'PROQM',
+    logo: 'PRQ',
+    sector: 'B2B / Cross-Border Trade',
+    price: 142.50,
+    ipoPrice: 142.50,
+    mktCap: '₹14.2 Cr',
+    tags: ['60% Transaction Revenue', 'B2B Cross-Border', 'Compliance AI', '99.5% Accuracy', '25% Logistics Margin', 'China+1 Strategy'],
+    metrics: [
+      { label: 'Export TAM', value: '$54B', sub: 'Serviceable market' },
+      { label: 'Repeat Rate', value: '65%', sub: 'Target YoY' },
+      { label: 'Comm. Rate', value: '8-12%', sub: 'Per order value' },
+      { label: 'Log. Margin', value: '25%', sub: 'Premium markup' },
+      { label: 'In-Hand Docs', value: '15+', sub: 'AI-gen in mins' },
+      { label: 'Cost Reduc.', value: '25%', sub: 'Logistics efficiency' },
+      { label: 'Suppliers', value: '10k+', sub: 'Verified manufacturers' },
+      { label: 'Mkt Opp (SAM)', value: '$12B', sub: 'MSME Export segment' }
+    ],
+    quantScore: {
+      total: 84,
+      grade: 'A-',
+      subScores: {
+        complianceAccuracy: 99,
+        tamOpportunity: 94,
+        unitEconomics: 82,
+        regulatoryMoat: 88,
+        networkLiquidity: 68,
+        logisticsControl: 79
+      }
+    },
+    rating: {
+      status: 'STRONG BUY',
+      conviction: 4.6,
+      bull: 240,
+      base: 142.5,
+      bear: 95,
+      targetRange: '₹155 – ₹210',
+      summary: '"Proquoment is strategically positioned to capture Indias manufacturing renaissance. By solving the trust and documentation barriers that prevent 99.7% of MSMEs from exporting, they aren\'t just a platform—they are a market creator. Their 15-year regulatory learning curve and full-stack execution (discovery to delivery) create a formidable moat against lead-gen players."'
+    },
+    swot: {
+      strengths: [
+        "Full-stack execution: Discovery to delivery",
+        "AI-powered compliance with 99.5% accuracy",
+        "15+ years regulatory learning curve moat",
+        "Embedded trade finance & escrow protection"
+      ],
+      weaknesses: [
+        "High dependence on third-party logistics",
+        "Early stage MSME onboarding fragmentation",
+        "Revenue concentration in commissions (60%)"
+      ],
+      opportunities: [
+        "Capture \"China+1\" shift to Indian manufacturing",
+        "Expansion into Dubai Free Zones & pharma",
+        "$2T Indian export target by 2030"
+      ],
+      threats: [
+        "Abrupt changes in DGFT or trade laws",
+        "Intensifying competition from horizontal players"
+      ]
+    },
+    uniquenessTitle: "WHAT MAKES PROQUOMENT UNIQUE",
+    uniquenessProposition: "Proquoment solves the trust and documentation barriers that prevent 99.7% of MSMEs from exporting. Unlike lead-gen players like IndiaMart, Proquoment offers full-stack execution from discovery to delivery with 99.5% AI compliance accuracy.",
+    financialSnapshot: [
+      { label: 'Transaction Comm.', value: '8-12%', color: 'black' },
+      { label: 'Logistics Margin', value: '25%', color: '#16A34A' },
+      { label: 'Repeat Rate', value: '65%', color: '#16A34A' },
+      { label: 'Year 5 GMV Target', value: '$4.8B', color: 'black' },
+      { label: 'Funding Ask', value: '$500K', color: '#B45309' }
+    ],
+    riskRegister: [
+      { name: 'Global shipping volatility', level: 'HIGH' },
+      { name: 'MSME digital adoption friction', level: 'MEDIUM' },
+      { name: 'Cross-border credit risk', level: 'MEDIUM' },
+      { name: 'Incumbent marketplace pivot', level: 'LOW' }
+    ],
+    milestones: [
+      { label: 'Mfrs', value: '10k+' },
+      { label: 'Docs AI', value: '15+' },
+      { label: 'Repeat Cat.', value: '65%' },
+      { label: 'Cost Save', value: '25%' },
+      { label: 'Escrow', value: 'Full' },
+      { label: 'Reach', value: 'Global' }
+    ],
+    projections: [
+      { label: 'Year 1', val1: 45, val2: -12 },
+      { label: 'Year 2', val1: 180, val2: 5 },
+      { label: 'Year 3', val1: 520, val2: 110 },
+    ],
+    alert: { text: "✓ Finanza Verified — Trade infrastructure and MSME onboarding protocols independently audited. Logistics margin and take-rate models validated. Compliance automation active." },
+    graphImage: null
+  },
+  elite: {
+    name: 'Elite Vendz',
+    ticker: 'ELITE',
+    logo: 'ELV',
+    sector: 'Healthy Vending',
+    price: 115.00,
+    ipoPrice: 115,
+    mktCap: '₹1.15 Cr',
+    tags: ['60s Dispense Time', 'Healthy Vending', 'IOT Enabled', 'Gym & Office Focus', 'Fresh Smoothies', 'MVP Stage'],
+    metrics: [
+      { label: 'Daily Target', value: '50-60', sub: 'Cups per machine' },
+      { label: 'Prep Time', value: '<60s', sub: 'Instant healthy access' },
+      { label: 'Target Sites', value: '15+', sub: 'Gym/Office identified' },
+      { label: 'Consumer TAM', value: '20M', sub: 'Urban beverage buyers' },
+      { label: 'Health SAM', value: '5-7M', sub: 'Primary fitness users' },
+      { label: 'Price Adv.', value: '50%', sub: 'vs Premium cafes' },
+      { label: 'Maintenance', value: 'Weekly', sub: 'Scheduled operations' },
+      { label: 'Ticket Size', value: '₹90-₹150', sub: 'Avg custom spend' }
+    ],
+    quantScore: {
+      total: 68,
+      grade: 'B-',
+      subScores: {
+        siteAccessibility: 82,
+        unitEconomics: 78,
+        techIntegration: 64,
+        marketGap: 85,
+        supplyMoat: 42,
+        scalingEase: 58
+      }
+    },
+    rating: {
+      status: 'ACCUMULATE',
+      conviction: 3.5,
+      bull: 185,
+      base: 115,
+      bear: 75,
+      targetRange: '₹140 – ₹195',
+      summary: '"Elite Vendz disrupts the unhealthy vending status quo by providing gym-goers and corporate workers with fresh protein shakes and smoothies in under 60 seconds. Success hinges on securing sticky real estate in Tier-1 gym chains and maintaining tight perishable supply chain logistics."'
+    },
+    swot: {
+      strengths: [
+        "Speed: Fresh drinks in under 60 seconds",
+        "Affordability: 40-50% cheaper than cafes",
+        "Location Strategy: 24/7 access in Gyms/Offices",
+        "Tech-enabled smart vending infrastructure"
+      ],
+      weaknesses: [
+        "Operations: High frequency of refilling required",
+        "CapEx: Significant upfront cost for smart machines",
+        "Initial brand awareness in beverage market"
+      ],
+      opportunities: [
+        "Massive shift toward healthy urban living",
+        "Expansion into universities & co-working",
+        "Menu expansion: Customized protein/supps"
+      ],
+      threats: [
+        "Competition from RTD retail brands",
+        "Strict FSSAI regulations on automated dispensing"
+      ]
+    },
+    uniquenessTitle: "WHAT MAKES ELITE VENDZ UNIQUE",
+    uniquenessProposition: "Elite Vendz disrupts the 'unhealthy vending' status quo by providing gym-goers and corporate workers with fresh protein shakes and smoothies in under 60 seconds. The model wins on convenience and price (₹90-150 vs ₹250+ at cafes).",
+    financialSnapshot: [
+      { label: 'Avg Selling Price', value: '₹120 / cup', color: 'black' },
+      { label: 'Daily Volume', value: '55 Cups', color: '#16A34A' },
+      { label: 'Market SAM', value: '7M Consumers', color: 'black' },
+      { label: 'Status', value: 'FSSAI Disclosure', color: '#16A34A' },
+      { label: 'CapEx', value: 'Investment Heavy', color: '#D97706' }
+    ],
+    riskRegister: [
+      { name: 'Perishable inventory waste', level: 'HIGH' },
+      { name: 'Machine maintenance downtime', level: 'MEDIUM' },
+      { name: 'High location rental costs', level: 'MEDIUM' },
+      { name: 'Standardization of taste', level: 'LOW' }
+    ],
+    milestones: [
+      { label: 'P1', value: 'Setup/MVP' },
+      { label: 'P2', value: 'Pilot (RU)' },
+      { label: 'P3', value: 'Gym/Office' },
+      { label: 'P4', value: 'Uni Scale' },
+      { label: 'Units', value: '5-10 (4m)' },
+      { label: 'Vision', value: 'Nat. Lead' }
+    ],
+    projections: [
+      { label: 'Phase 1', val1: 1, val2: 0 },
+      { label: 'Phase 2', val1: 3, val2: 12 },
+      { label: 'Phase 3', val1: 10, val2: 45 },
+    ],
+    alert: { text: "✓ Finanza Verified — Smart vending unit economics and supply chain audited. ⚠ Scaling Note: Phase 2 pilot complete. Transitioning to gym/office expansion across Tier-1 cities." },
+    graphImage: null
+  },
+  mookh: {
+    name: 'Mookh AI',
+    ticker: 'MOOKH',
+    logo: 'MOK',
+    sector: 'Health-Tech / Assistive AI',
+    price: 140.00,
+    ipoPrice: 140,
+    mktCap: '₹14.0 Cr',
+    tags: ['<200ms Latency', 'Health-Tech / Assistive AI', 'Multimodal Sensor Fusion', '>95% Accuracy', 'Clinical Grade', 'Series A'],
+    metrics: [
+      { label: 'Response Time', value: '<200ms', sub: 'Sub-10ms sensor capture' },
+      { label: 'Transcription', value: '95%+', sub: 'Clinical-grade accuracy' },
+      { label: 'Segments', value: '4+', sub: 'Mute, Sign, Hospital, Kids' },
+      { label: 'Satisfaction', value: '>90%', sub: 'WHOQOL Target' },
+      { label: 'Privacy', value: 'AES-256', sub: 'On-device encryption' },
+      { label: 'Monetization', value: 'SaaS+', sub: 'Device + Tiered Subs' },
+      { label: 'Data Pipeline', value: 'Unified', sub: 'IMU + Depth + RGB' },
+      { label: 'Impact', value: 'SDG 3,9,10', sub: 'Global inclusion goals' }
+    ],
+    quantScore: {
+      total: 81,
+      grade: 'A',
+      subScores: {
+        technicalLatency: 92,
+        clinicalAccuracy: 89,
+        identityPreservation: 84,
+        marketDemand: 78,
+        monetizationPath: 65,
+        hardwareScalability: 58
+      }
+    },
+    rating: {
+      status: 'BUY',
+      conviction: 4.2,
+      bull: 350,
+      base: 140,
+      bear: 50,
+      targetRange: '₹280 – ₹420',
+      summary: '"Mookh AI bridges the communication divide for the non-verbal population through ultra-low latency sensor fusion. By combining hardware with transformer-based speech synthesis, they eliminate the need for third-party interpreters. Their privacy-first architecture is a key differentiator in healthcare."'
+    },
+    swot: {
+      strengths: [
+        "Ultra-low latency real-time synthesis (<200ms)",
+        "Personalized AI voice preservation (accent, tone)",
+        "Clinical-grade accuracy verified in trials",
+        "On-device processing & AES-256 encryption"
+      ],
+      weaknesses: [
+        "Higher initial hardware cost vs. mobile apps",
+        "Dependence on sensor fusion hardware integrity",
+        "Limited language support in MVP phase"
+      ],
+      opportunities: [
+        "Integration with healthcare & rehab platforms",
+        "Government disability programs & insurance",
+        "Data insights for research institutions"
+      ],
+      threats: [
+        "Stringent FDA/CE Mark clearance timelines",
+        "Advancements in non-invasive neural-link"
+      ]
+    },
+    uniquenessTitle: "WHAT MAKES MOOKH AI UNIQUE",
+    uniquenessProposition: "Mookh AI bridges the 'communication divide' through ultra-low latency (<200ms). By combining sensor fusion with transformer-based speech synthesis, they eliminate the need for third-party interpreters while maintaining privacy via on-device processing.",
+    financialSnapshot: [
+      { label: 'Hardware Sales', value: 'One-time', color: 'black' },
+      { label: 'SaaS Subs', value: 'Monthly/Annual', color: '#16A34A' },
+      { label: 'Accuracy', value: '>95%', color: '#16A34A' },
+      { label: 'Target Ask', value: '$8 Million', color: 'black' },
+      { label: 'Round', value: 'Series A', color: '#B45309' }
+    ],
+    riskRegister: [
+      { name: 'Regulatory certification delays', level: 'HIGH' },
+      { name: 'Hardware manufacturing complexity', level: 'MEDIUM' },
+      { name: 'Sign language dialect mapping', level: 'MEDIUM' },
+      { name: 'Competitor software-only pivots', level: 'LOW' }
+    ],
+    milestones: [
+      { label: 'Q3 \'26', value: 'MVP Release' },
+      { label: 'Q1 \'27', value: 'Beta Trials' },
+      { label: '100+', value: 'Beta Users' },
+      { label: 'CE/FDA', value: 'Certification' },
+      { label: '30+', value: 'Langs (Y2)' },
+      { label: 'Satis.', value: '>90%' }
+    ],
+    projections: [
+      { label: 'Seed', val1: 15, val2: 0 },
+      { label: 'Current', val1: 42, val2: 15 },
+      { label: 'Bull', val1: 110, val2: 45 },
+    ],
+    alert: { text: "✓ Finanza Verified — Clinical efficacy and AI latency benchmarks audited. ⚠ Medical Device Disclosure: Class II Assistive Healthcare device. HIPAA/GDPR compliant." },
     graphImage: null
   }
 };

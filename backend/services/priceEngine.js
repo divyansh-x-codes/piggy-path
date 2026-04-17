@@ -8,38 +8,39 @@ const { getIO } = require('../sockets/index');
 const startPriceEngine = () => {
     console.log('[PriceEngine] Passive Monitor Active - Automated Fluctuations Disabled');
 
+    // Fluctuations are disabled per user request for a stable reset state
+    /*
     setInterval(async () => {
-        try {
-            const stocksRef = db.collection('stocks');
-            const snapshot = await stocksRef.get();
-            if (snapshot.empty) return;
+      try {
+        const stocksRef = db.collection('stocks');
+        const snapshot = await stocksRef.get();
+        if (snapshot.empty) return;
 
-            const batch = db.batch();
+        const batch = db.batch();
 
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const currentPrice = parseFloat(data.price || data.basePrice || 100);
-                
-                // ─── USER REQUESTED LOGIC (2% Volatility) ───
-                const fluctuation = (Math.random() - 0.5) * 0.02;
-                const newPrice = +(currentPrice * (1 + fluctuation)).toFixed(2);
-                
-                let history = data.history || [];
-                // Keep last 50 points as requested
-                history = [...history.slice(-49), newPrice];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const currentPrice = parseFloat(data.price || data.basePrice || 100);
+          
+          const fluctuation = (Math.random() - 0.5) * 0.005; // Reduced volatility
+          const newPrice = +(currentPrice * (1 + fluctuation)).toFixed(2);
+          
+          let history = data.history || [];
+          history = [...history.slice(-49), newPrice];
 
-                batch.update(doc.ref, {
-                    price: newPrice,
-                    history: history,
-                    lastUpdated: new Date()
-                });
-            });
+          batch.update(doc.ref, {
+            price: newPrice,
+            history: history,
+            lastUpdated: new Date()
+          });
+        });
 
-            await batch.commit();
-        } catch (err) {
-            console.error('[PriceEngine] Error:', err.message);
-        }
-    }, 2000);
+        await batch.commit();
+      } catch (err) {
+        console.error('[PriceEngine] Error:', err.message);
+      }
+    }, 5000); // Slower interval
+    */
 };
 
 module.exports = { startPriceEngine };

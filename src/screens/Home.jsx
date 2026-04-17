@@ -21,10 +21,13 @@ const Home = () => {
 
   React.useEffect(() => {
     if (!isSuperAdmin) return;
-    const unsub = onSnapshot(doc(db, 'leaderboard', 'global'), (snap) => {
-      if (snap.exists()) setLeaderboard(snap.data());
-    });
-    return () => unsub();
+    const fetchLeaderboard = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'leaderboard', 'global'));
+        if (snap.exists()) setLeaderboard(snap.data());
+      } catch (err) { console.error("Leaderboard fetch error:", err); }
+    };
+    fetchLeaderboard();
   }, [isSuperAdmin]);
 
   const portfolioValue = getPortfolioValue();
