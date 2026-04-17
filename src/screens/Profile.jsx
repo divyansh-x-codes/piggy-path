@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
 import { BottomNav } from '../components/Shared';
 import { STOCKS } from '../data/mockData';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { doc, onSnapshot, getDoc } from 'firebase/firestore';
+import { db, auth } from '../lib/firebase';
+import { signOut } from 'firebase/auth';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -35,6 +36,15 @@ const Profile = () => {
     fetchLeaderboard();
   }, []);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/auth');
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
 
@@ -55,7 +65,10 @@ const Profile = () => {
         </div>
 
         {/* Hamburger Menu */}
-        <div style={{ padding: 8 }}>
+        <div 
+          onClick={handleLogout}
+          style={{ padding: 8, cursor: 'pointer' }}
+        >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </div>
       </div>

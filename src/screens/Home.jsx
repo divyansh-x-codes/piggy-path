@@ -45,13 +45,13 @@ const Home = () => {
   const navigate = useNavigate();
   const {
     portfolio, getPortfolioValue, userData,
-    getPrice, getChange, forceSeed, user, stocks
+    getPrice, getChange, forceSeed, user, stocks, isAdmin
   } = useAppContext();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
   const [leaderboard, setLeaderboard] = React.useState(null);
 
-  const isSuperAdmin = user?.email === 'simplydivyanshk@gmail.com';
+  const isSuperAdmin = isAdmin;
   const [userLeaderboard, setUserLeaderboard] = React.useState({ data: [], updatedAt: null });
 
   // 1. Listen for USER LEADERBOARD (Admin View)

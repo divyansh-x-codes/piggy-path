@@ -289,12 +289,17 @@ exports.updateLeaderboard = functions.firestore.document("users/{userId}").onWri
     const snapshot = await db.collection("users").get();
     let users = [];
 
+    console.log(`[Leaderboard] Found ${snapshot.size} users. Processing...`);
+
     snapshot.forEach(doc => {
       const data = doc.data();
+      // Robustness: Use portfolioValue if exists, otherwise fallback to balance, else 0.
+      const pValue = data.portfolioValue !== undefined ? data.portfolioValue : (data.balance || 0);
+      
       users.push({
         uid: doc.id,
         username: data.displayName || data.username || "Investor",
-        portfolioValue: data.portfolioValue || 0,
+        portfolioValue: Number(Number(pValue).toFixed(2)),
         email: data.email || ""
       });
     });

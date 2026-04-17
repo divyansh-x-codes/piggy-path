@@ -141,7 +141,8 @@ export const AppProvider = ({ children }) => {
             console.log("[AppContext] INITIALIZING NEW USER");
             const newProfile = { 
               balance: 50000, 
-              role: firebaseUser.email === 'simplydivyanshk@gmail.com' ? 'admin' : 'user',
+              portfolioValue: 50000,
+              role: (firebaseUser.email === 'simplydivyanshk@gmail.com' || firebaseUser.email === 'divyansh.coredev@gmail.com') ? 'admin' : 'user',
               displayName: firebaseUser.displayName || 'Investor',
               email: firebaseUser.email,
               createdAt: Date.now() 
@@ -291,7 +292,7 @@ export const AppProvider = ({ children }) => {
         if (!userSnap.exists()) throw "User profile not found. Please refresh page.";
 
         const price = stockSnap.data().price;
-        const totalValue = price * qty;
+        const totalCost = price * qty;
         const userData = userSnap.data();
 
         // Common Portfolio Setup - Handle missing doc gracefully
@@ -454,20 +455,60 @@ export const AppProvider = ({ children }) => {
         });
       }
 
-      // 4. Seed/Update the 14 core companies
-      for (const stock of MOCK_STOCKS) {
-        await runTransaction(db, async (tx) => {
-          const ref = doc(db, 'stocks', stock.id);
-          tx.set(ref, {
-            name: stock.name,
-            symbol: stock.ticker,
-            price: stock.basePrice,
-            prevPrice: stock.basePrice,
-            history: [stock.basePrice],
-            updatedAt: Date.now(),
-            lastUpdated: serverTimestamp()
-          }, { merge: true });
+      // 5. MASTER LEADERBOARD RE-CALCULATION
+      console.log('[Firestore] Recalculating Master Leaderboard...');
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        const portfoliosSnap = await getDocs(collection(db, 'portfolios'));
+        
+        const stocksMap = {};
+        snap.forEach(d => stocksMap[d.id] = d.data());
+
+        const portfoliosMap = {};
+        portfoliosSnap.forEach(d => portfoliosMap[d.id] = d.data().holdings || {});
+
+        const leaderboardData = [];
+        for (const userDoc of usersSnap.docs) {
+          const uData = userDoc.data();
+          const uid = userDoc.id;
+          const holdings = portfoliosMap[uid] || {};
+          
+          let assetsValue = 0;
+          Object.entries(holdings).forEach(([sid, h]) => {
+              const stock = MOCK_STOCKS.find(s => s.id === sid);
+              const price = stocksMap[sid]?.price || stock?.basePrice || 0;
+              assetsValue += (h.qty || 0) * price;
+          });
+
+          const totalValue = (uData.balance || 0) + assetsValue;
+          const finalValue = Number(totalValue.toFixed(2));
+          
+          leaderboardData.push({
+            uid,
+            username: uData.displayName || uData.username || "Investor",
+            email: uData.email || "",
+            portfolioValue: finalValue,
+            rank: 0,
+            rankChange: 'none'
+          });
+
+          // Sync the user document itself so it's ready for future real-time triggers
+          if (uData.portfolioValue !== finalValue) {
+            await setDoc(doc(db, 'users', uid), { portfolioValue: finalValue }, { merge: true });
+          }
+        }
+
+        // Sort and Rank
+        leaderboardData.sort((a, b) => b.portfolioValue - a.portfolioValue);
+        const finalRanked = leaderboardData.map((user, idx) => ({ ...user, rank: idx + 1 }));
+
+        await setDoc(doc(db, 'leaderboard', 'users_global'), {
+          data: finalRanked,
+          updatedAt: serverTimestamp()
         });
+        console.log(`[Firestore] Leaderboard Synced: ${finalRanked.length} traders ranked.`);
+      } catch (leaderError) {
+        console.error('Leaderboard sync failed during forceSeed', leaderError);
       }
       
       console.log('[Firestore] Database Cleaned & Seeded!');
