@@ -280,6 +280,18 @@ const StockDetail = () => {
               {/* DETAILED SCORECARD INTEGRATION */}
               {RESEARCH_REPORTS[stockId] && (() => {
                 const report = RESEARCH_REPORTS[stockId];
+                
+                // NEW: Support for full HTML reports
+                if (report.fullReportHtml) {
+                  return (
+                    <div 
+                      className="full-html-report"
+                      dangerouslySetInnerHTML={{ __html: report.fullReportHtml }} 
+                      style={{ marginTop: 20 }}
+                    />
+                  );
+                }
+
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
                     
