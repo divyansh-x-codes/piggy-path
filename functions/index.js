@@ -280,3 +280,54 @@ exports.updateLeaderboard = functions.pubsub.schedule("* * * * *").onRun(async (
   console.log(`[Leaderboard] Market sync complete. ${rankedData.length} stocks indexed.`);
   return null;
 });
+
+// REALTIME LEADERBOARD ENGINE (TRIGGER-BASED)
+exports.updateLeaderboard = functions.firestore.document("users/{userId}").onWrite(async (change, context) => {
+  console.log("[Leaderboard] User change detected, updating rankings...");
+  
+  try {
+    const snapshot = await db.collection("users").get();
+    let users = [];
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      users.push({
+        uid: doc.id,
+        username: data.displayName || data.username || "Investor",
+        portfolioValue: data.portfolioValue || 0,
+        email: data.email || ""
+      });
+    });
+
+    // 1. Sort DESC
+    users.sort((a, b) => b.portfolioValue - a.portfolioValue);
+
+    // 2. Assign Rank & Detect Movement
+    const prevDoc = await db.collection("leaderboard").doc("users_global").get();
+    const prevData = prevDoc.exists ? prevDoc.data().data || [] : [];
+    const prevRankMap = {};
+    prevData.forEach((item, index) => { prevRankMap[item.uid] = index + 1; });
+
+    const finalLeaderboard = users.map((user, index) => {
+      const currentRank = index + 1;
+      const prevRank = prevRankMap[user.uid];
+      let rankChange = 'none';
+      if (prevRank) {
+        if (currentRank < prevRank) rankChange = 'up';
+        else if (currentRank > prevRank) rankChange = 'down';
+      }
+      return { ...user, rank: currentRank, rankChange };
+    });
+
+    // 3. Save to global document
+    await db.collection("leaderboard").doc("users_global").set({
+      data: finalLeaderboard,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`[Leaderboard] Realtime sync complete. ${finalLeaderboard.length} users indexed.`);
+  } catch (error) {
+    console.error("[Leaderboard] Sync Error:", error);
+  }
+  return null;
+});

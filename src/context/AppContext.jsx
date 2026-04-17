@@ -304,10 +304,10 @@ export const AppProvider = ({ children }) => {
             throw "Maximum 10 shares per order! You can buy again in a separate transaction.";
           }
 
-          if (userData.balance < totalValue) throw "Insufficient balance (Balance: ₹" + Math.floor(userData.balance) + ")";
+          if (userData.balance < totalCost) throw "Insufficient balance (Balance: ₹" + Math.floor(userData.balance) + ")";
 
-          // 1. Deduct Balance
-          tx.update(userRef, { balance: userData.balance - totalValue });
+          // 1. New Balance
+          const newBalance = userData.balance - totalCost;
 
           // 2. Update Portfolio
           const newQty = current.qty + qty;
@@ -316,7 +316,29 @@ export const AppProvider = ({ children }) => {
           holdings[sid] = { qty: newQty, avgPrice: newAvg };
           tx.set(portfolioRef, { holdings, updatedAt: Date.now() }, { merge: true });
 
-          // 3. GLOBAL PRICE IMPACT (+2%)
+          // 3. Calculate Total Portfolio Value (for Leaderboard)
+          // We need current prices for all holdings to get 100% accurate ranking
+          // Since only 14 stocks exist, we can fetch them or use current traded price as authoritative for sid
+          let totalAssetsValue = 0;
+          for (const [holdId, h] of Object.entries(holdings)) {
+            let hPrice = 0;
+            if (holdId === sid) {
+                hPrice = price; // Current market price before this trade impact? 
+                // Technically buying moves price UP, but we use the price at which user bought
+            } else {
+                // For other stocks, we'd ideally fetch, but for efficiency we'll use state or a quick set of gets
+                // To keep transaction small, we'll use the 'stocks' state from context which is synced
+                hPrice = stocks[holdId]?.price || MOCK_STOCKS.find(s => s.id === holdId)?.basePrice || 0;
+            }
+            totalAssetsValue += (h.qty * hPrice);
+          }
+
+          tx.update(userRef, { 
+            balance: newBalance,
+            portfolioValue: Number((newBalance + totalAssetsValue).toFixed(2))
+          });
+
+          // 4. GLOBAL PRICE IMPACT (+2%)
           const newPrice = +(price * 1.02).toFixed(2);
           const history = stockSnap.data().history || [];
           tx.update(stockRef, { price: newPrice, history: [...history.slice(-49), newPrice], updatedAt: Date.now() });
@@ -325,8 +347,8 @@ export const AppProvider = ({ children }) => {
           // SELL
           if (current.qty < qty) throw "Insufficient holdings";
 
-          // 1. Add to Balance
-          tx.update(userRef, { balance: userSnap.data().balance + totalValue });
+          // 1. New Balance
+          const newBalance = userSnap.data().balance + totalCost;
 
           // 2. Update Portfolio
           const newQty = current.qty - qty;
@@ -335,7 +357,21 @@ export const AppProvider = ({ children }) => {
 
           tx.update(portfolioRef, { holdings });
 
-          // 3. GLOBAL PRICE IMPACT (-2%)
+          // 3. Calculate Total Portfolio Value
+          let totalAssetsValue = 0;
+          for (const [holdId, h] of Object.entries(holdings)) {
+            let hPrice = 0;
+            if (holdId === sid) hPrice = price;
+            else hPrice = stocks[holdId]?.price || MOCK_STOCKS.find(s => s.id === holdId)?.basePrice || 0;
+            totalAssetsValue += (h.qty * hPrice);
+          }
+
+          tx.update(userRef, { 
+            balance: newBalance,
+            portfolioValue: Number((newBalance + totalAssetsValue).toFixed(2))
+          });
+
+          // 4. GLOBAL PRICE IMPACT (-2%)
           const newPrice = +(price * 0.98).toFixed(2);
           const history = stockSnap.data().history || [];
           tx.update(stockRef, { price: newPrice, history: [...history.slice(-49), newPrice], updatedAt: Date.now() });
@@ -368,6 +404,7 @@ export const AppProvider = ({ children }) => {
       // 2. Reset User Balance to 50,000
       await setDoc(doc(db, 'users', user.uid), {
         balance: 50000,
+        portfolioValue: 50000,
         updatedAt: Date.now()
       }, { merge: true });
 

@@ -52,9 +52,18 @@ const Home = () => {
   const [leaderboard, setLeaderboard] = React.useState(null);
 
   const isSuperAdmin = user?.email === 'simplydivyanshk@gmail.com';
+  const [userLeaderboard, setUserLeaderboard] = React.useState({ data: [], updatedAt: null });
 
-  const [expandedId, setExpandedId] = React.useState(null);
-  const [manipulating, setManipulating] = React.useState(null);
+  // 1. Listen for USER LEADERBOARD (Admin View)
+  React.useEffect(() => {
+    if (!isSuperAdmin) return;
+    const unsub = onSnapshot(doc(db, "leaderboard", "users_global"), (snap) => {
+      if (snap.exists()) {
+        setUserLeaderboard(snap.data());
+      }
+    });
+    return () => unsub();
+  }, [isSuperAdmin]);
 
   const portfolioValue = getPortfolioValue();
 
@@ -228,23 +237,23 @@ const Home = () => {
         color: 'white', fontFamily: "'Inter', sans-serif" 
       }}>
 
-        {/* HEADER - INNOVATION LEADERSHIP (Synced to SuperAdmin view) */}
+        {/* HEADER - USER PERFORMANCE (Admin Terminal) */}
         <div style={{ padding: '36px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.3px', color: '#FFFFFF', textShadow: '0 0 20px rgba(255,255,255,0.1)' }}>TERMINAL</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
                 <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#4ADE80', borderRadius: '50%', boxShadow: '0 0 10px #4ADE80' }}></div>
-                <span style={{ fontSize: '10px', fontWeight: '900', color: '#4ADE80', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Pure Realtime Sync</span>
+                <span style={{ fontSize: '10px', fontWeight: '900', color: '#4ADE80', letterSpacing: '1.5px', textTransform: 'uppercase' }}>User Realtime Sync</span>
               </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ color: '#94A3B8', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{masterLeaderboard.length} Monitoring</div>
+                <div style={{ color: '#94A3B8', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{userLeaderboard.data?.length || 0} Traders</div>
                 <div 
                   onClick={async () => {
-                    if (window.confirm("RESET CLOUD DATA?")) {
+                    if (window.confirm("SYNC MARKET DATA?")) {
                       await forceSeed();
                     }
                   }}
@@ -263,141 +272,148 @@ const Home = () => {
             style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
           >
             <AnimatePresence mode="popLayout">
-            {masterLeaderboard.map((stock, i) => {
-              const chg = stock.change;
-              const isUp = chg >= 0;
-              const isExpanded = expandedId === stock.id;
-              const cardThemeColor = isUp ? '#4ADE80' : '#F87171';
+            {(userLeaderboard.data || []).length === 0 ? (
+              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(31, 41, 55, 0.2)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
+                <p style={{ color: '#94A3B8', fontSize: 14, fontWeight: 700 }}>No traders yet...</p>
+                <p style={{ color: '#64748B', fontSize: 11, marginTop: 4 }}>Be the first to trade and claim the #1 spot!</p>
+              </div>
+            ) : (
+              (userLeaderboard.data || []).map((u, i) => {
+                const cardThemeColor = i === 0 ? '#4ADE80' : i === 1 ? '#60A5FA' : i === 2 ? '#FBBF24' : '#94A3B8';
 
-              return (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  key={stock.id} 
-                  className="innovation-card"
-                  style={{
-                    background: 'rgba(31, 41, 55, 0.3)',
-                    backdropFilter: 'blur(12px)',
-                    borderRadius: '24px',
-                    border: isExpanded ? `1.5px solid ${cardThemeColor}` : '1px solid rgba(255,255,255,0.08)',
-                    boxShadow: isExpanded ? `0 0 30px ${cardThemeColor}11` : 'none',
-                    overflow: 'hidden',
-                    transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                    position: 'relative'
-                  }}
-                >
-                  {/* Rank Badge */}
+                return (
                   <motion.div 
                     layout
-                    style={{ 
-                      position: 'absolute', top: 12, left: 14, 
-                      fontSize: '11px', fontWeight: '900', color: cardThemeColor, 
-                      background: `${cardThemeColor}11`, padding: '2px 8px', borderRadius: 8,
-                      zIndex: 2
-                    }}
-                  >
-                    {i + 1}
-                  </motion.div>
-
-                  <div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    key={u.uid} 
+                    className="innovation-card"
                     style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '24px 18px 18px',
-                      cursor: 'pointer',
-                      opacity: manipulating === stock.id ? 0.4 : 1,
-                      gap: 12
+                      background: 'rgba(31, 41, 55, 0.3)',
+                      backdropFilter: 'blur(12px)',
+                      borderRadius: '24px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      overflow: 'hidden',
+                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                      position: 'relative'
                     }}
-                    onClick={() => setExpandedId(isExpanded ? null : stock.id)}
                   >
-                    {/* Left: Info (35% width) */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 35%', minWidth: 0 }}>
-                      <div style={{
-                        width: '48px',
-                        height: '48px',
-                        flexShrink: 0,
-                        borderRadius: '16px',
-                        background: 'rgba(0, 0, 0, 0.4)',
+                    {/* Rank Badge */}
+                    <motion.div 
+                      layout
+                      style={{ 
+                        position: 'absolute', top: 12, left: 14, 
+                        fontSize: '11px', fontWeight: '900', color: cardThemeColor, 
+                        background: `${cardThemeColor}11`, padding: '2px 8px', borderRadius: 8,
+                        zIndex: 2
+                      }}
+                    >
+                      {u.rank || i + 1}
+                    </motion.div>
+
+                    <div
+                      style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        border: `1.5px solid ${cardThemeColor}33`,
-                        boxShadow: `inset 0 0 15px ${cardThemeColor}11`
-                      }}>
-                        {getStockIcon(stock.id, cardThemeColor)}
-                      </div>
-                      
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ 
-                          fontSize: '14px', 
-                          fontWeight: '900', 
-                          color: '#FFFFFF', 
-                          letterSpacing: '-0.2px', 
-                          whiteSpace: 'nowrap', 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis' 
-                        }} title={stock.name}>
-                          {stock.name}
+                        justifyContent: 'space-between',
+                        padding: '24px 18px 18px',
+                        gap: 12
+                      }}
+                    >
+                      {/* Left: User Info */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 45%', minWidth: 0 }}>
+                        <div style={{
+                          width: '48px',
+                          height: '48px',
+                          flexShrink: 0,
+                          borderRadius: '16px',
+                          background: 'rgba(0, 0, 0, 0.4)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: `1.5px solid ${cardThemeColor}33`,
+                          boxShadow: `inset 0 0 15px ${cardThemeColor}11`
+                        }}>
+                          <Users size={20} color={cardThemeColor} strokeWidth={2.5} />
                         </div>
-                        <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', marginTop: 2, display: 'flex', gap: 4, alignItems: 'center' }}>
-                          <span>{stock.ticker}</span>
-                          <span style={{ width: 3, height: 3, background: '#4B5563', borderRadius: '50%' }}></span>
-                          <span style={{ color: '#64748B' }}>{stock.sector.split('/')[0]}</span>
+                        
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ 
+                            fontSize: '14px', 
+                            fontWeight: '900', 
+                            color: '#FFFFFF', 
+                            letterSpacing: '-0.2px', 
+                            whiteSpace: 'nowrap', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis' 
+                          }}>
+                            {u.username}
+                          </div>
+                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', marginTop: 2, display: 'flex', gap: 4, alignItems: 'center' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Center: Rank Movement */}
+                      <div style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: 6 }}>
+                          {u.rankChange === 'up' ? (
+                            <>
+                              <TrendingUp size={12} color="#4ADE80" />
+                              <span style={{ fontSize: '9px', fontWeight: '900', color: '#4ADE80', letterSpacing: 0.5 }}>MOVED UP</span>
+                            </>
+                          ) : u.rankChange === 'down' ? (
+                            <>
+                              <TrendingUp size={12} color="#F87171" style={{ transform: 'rotate(180deg)' }} />
+                              <span style={{ fontSize: '9px', fontWeight: '900', color: '#F87171', letterSpacing: 0.5 }}>MOVED DOWN</span>
+                            </>
+                          ) : (
+                            <span style={{ fontSize: '9px', fontWeight: '900', color: '#94A3B8', letterSpacing: 0.5 }}>NO CHANGE</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Portfolio Value */}
+                      <div style={{ textAlign: 'right', flex: '0 0 35%', minWidth: 80 }}>
+                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFFFFF', marginBottom: '6px' }}>
+                          ₹{u.portfolioValue?.toLocaleString('en-IN')}
+                        </div>
+                        <div style={{
+                          padding: '4px 8px',
+                          borderRadius: '8px',
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#94A3B8',
+                          fontSize: '10px',
+                          fontWeight: '900',
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}>
+                          PORTFOLIO RANK
                         </div>
                       </div>
                     </div>
 
-                    {/* Center: Graph (30% width) */}
-                    <div style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                      <div style={{ width: '100%', maxWidth: '100px', display: 'flex', justifyContent: 'center' }}>
-                        {renderSparkline(stock.id, stock.history)}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.2)', padding: '2px 8px', borderRadius: 6 }}>
-                        <TrendingUp size={10} color="#4ADE80" />
-                        <span style={{ fontSize: '8px', fontWeight: '900', color: '#94A3B8', letterSpacing: 0.5 }}>UP 2 SPOTS</span>
-                      </div>
+                    {/* PROGESS BAR (Visual Decoration) */}
+                    <div style={{ height: '4px', width: '100%', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+                       <div style={{ 
+                         height: '100%', 
+                         width: `${Math.max(10, 100 - (i * 10))}%`, 
+                         background: `linear-gradient(90deg, ${cardThemeColor}22, ${cardThemeColor})`,
+                         boxShadow: `0 0 15px ${cardThemeColor}44`,
+                         borderRadius: '0 4px 4px 0'
+                       }} />
                     </div>
-
-                    {/* Right: Pricing (30% width) */}
-                    <div style={{ textAlign: 'right', flex: '0 0 30%', minWidth: 80 }}>
-                      <PriceDisplay price={stock.price} isUp={isUp} />
-                      <div style={{
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        background: isUp ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)',
-                        border: `1px solid ${cardThemeColor}22`,
-                        color: cardThemeColor,
-                        fontSize: '11px',
-                        fontWeight: '900',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4
-                      }}>
-                        {isUp ? '▲' : '▼'} {Math.abs(chg).toFixed(2)}%
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* PROGESS BAR (Gradients) */}
-                  <div style={{ height: '4px', width: '100%', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                     <div style={{ 
-                       height: '100%', 
-                       width: `${Math.max(20, 100 - (i * 6))}%`, 
-                       background: `linear-gradient(90deg, ${cardThemeColor}22, ${cardThemeColor})`,
-                       boxShadow: `0 0 15px ${cardThemeColor}44`,
-                       borderRadius: '0 4px 4px 0'
-                     }} />
-                  </div>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              })
+            )}
             </AnimatePresence>
           </motion.div>
           <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.2 }}>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#111', textTransform: 'uppercase', letterSpacing: '4px' }}>Market closed</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '4px' }}>Global Leaderboard</p>
           </div>
         </div>
         <BottomNav active="home" />
