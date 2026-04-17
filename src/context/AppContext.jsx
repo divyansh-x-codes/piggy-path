@@ -10,7 +10,11 @@ import {
   getDocs,
   setDoc,
   onSnapshot,
-  serverTimestamp
+  serverTimestamp,
+  query,
+  orderBy,
+  addDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { STOCKS as MOCK_STOCKS } from '../data/mockData';
 
@@ -28,6 +32,7 @@ export const AppProvider = ({ children }) => {
   const [portfolio, setPortfolio] = useState({ holdings: {} }); // STRICT STRUCTURE
   const [stocks, setStocks] = useState({});
   const [ipoOrders, setIpoOrders] = useState([]);
+  const [articles, setArticles] = useState([]);
   const [watchlist, setWatchlist] = useState(['msft', 'aapl', 'googl']);
 
   // ─── AUTH LISTENER ────────────────────────────────────────────────────────
@@ -40,7 +45,11 @@ export const AppProvider = ({ children }) => {
       if (userSnap.exists()) {
         const data = userSnap.data();
         setUserData(data);
-        setIsAdmin(auth.currentUser?.email === 'simplydivyanshk@gmail.com' || data.role === 'admin');
+        setIsAdmin(
+          auth.currentUser?.email === 'simplydivyanshk@gmail.com' || 
+          auth.currentUser?.email === 'divyansh.coredev@gmail.com' || 
+          data.role === 'admin'
+        );
       }
     } catch (e) { console.error("Fetch Profile Error:", e); }
   }, []);
@@ -203,18 +212,27 @@ export const AppProvider = ({ children }) => {
       }
     });
 
+    // ─── ARTICLES LISTENER ───
+    const articlesQuery = query(collection(db, 'articles'), orderBy('createdAt', 'desc'));
+    const unsubArticles = onSnapshot(articlesQuery, (snap) => {
+      const artList = [];
+      snap.forEach(d => artList.push({ id: d.id, ...d.data() }));
+      setArticles(artList);
+    });
+
     return () => {
       unsubStocks();
       unsubMarket();
+      unsubArticles();
     };
-  }, []);
+  }, [user?.uid]);
 
   // Debug Logs
   useEffect(() => {
     console.log("USER:", user?.uid);
     console.log("ADMIN:", isAdmin);
-    console.log("LOADING:", loading);
-  }, [user, isAdmin, loading]);
+    console.log("ARTICLES:", articles.length);
+  }, [user, isAdmin, articles]);
 
   // ─── FIRESTORE LISTENERS REMOVED FOR COST OPTIMIZATION ────────────────────
 
@@ -433,6 +451,36 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  // ─── ARTICLE PUBLISHING ───
+  const publishArticle = async (articleData) => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    try {
+      await addDoc(collection(db, 'articles'), {
+        ...articleData,
+        createdAt: serverTimestamp(),
+        author: user?.displayName || 'Admin',
+        likes: 0,
+        views: 0,
+        comments: 0
+      });
+      return { success: true };
+    } catch (e) {
+      console.error('Publish Error:', e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
+  const deleteArticle = async (articleId) => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    try {
+      await deleteDoc(doc(db, 'articles', articleId));
+      return { success: true };
+    } catch (e) {
+      console.error('Delete Error:', e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
   const forceSeed = async () => {
     console.log('[Firestore] Exclusive Seed Triggered — Removing unknown companies...');
     try {
@@ -533,6 +581,7 @@ export const AppProvider = ({ children }) => {
       stocks, // Add this
       getPrice, getChange, getPriceHistory, getPortfolioValue,
       confirmTrade, applyIPO, forceSeed, resetData, manipulatePrice,
+      publishArticle, deleteArticle, articles, setArticles,
       STOCKS: MOCK_STOCKS
     }}>
       {children}

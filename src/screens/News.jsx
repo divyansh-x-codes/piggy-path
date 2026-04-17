@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../context/AppContext';
-import { NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 
 const News = () => {
   const navigate = useNavigate();
-  const cats = [...new Set(NEWS.map(n => n.cat))];
+  const { articles, isAdmin, deleteArticle } = useAppContext();
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
@@ -29,15 +28,28 @@ const News = () => {
 
       {/* Scrollable Content */}
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
-        {cats.map((cat, idx) => (
-          <div key={idx} style={{ padding: '0 20px', marginBottom: 24 }}>
+        {articles.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', opacity: 0.5 }}>
+            <p style={{ fontSize: 14, fontWeight: 700 }}>No reports published yet.</p>
+            <p style={{ fontSize: 11 }}>Please wait for admin updates.</p>
+          </div>
+        ) : (
+          <div style={{ padding: '0 20px', marginBottom: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 16 }}>
-              <span className="section-title">{cat}</span>
-              <span className="view-all">View all</span>
+              <span className="section-title">Latest Reports</span>
+              <span className="view-all" style={{ opacity: 0.5 }}>Realtime</span>
             </div>
 
-            {NEWS.filter(n => n.cat === cat).map(n => (
-              <div key={n.id} className="card" style={{ marginBottom: 10 }}>
+            {articles.map(n => (
+              <div key={n.id} className="card" style={{ marginBottom: 16, position: 'relative' }}>
+                {isAdmin && (
+                  <div 
+                    onClick={() => deleteArticle(n.id)}
+                    style={{ position: 'absolute', top: 12, right: 12, padding: 8, cursor: 'pointer', opacity: 0.4 }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="red" strokeWidth="3"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ width: 40, height: 40, background: 'var(--purple-light)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 15, color: 'var(--purple)' }}>{n.stock[0]}</div>
@@ -46,19 +58,18 @@ const News = () => {
                       <div style={{ fontSize: 11, color: 'var(--muted)' }}>{n.ticker}</div>
                     </div>
                   </div>
-                  <span className={`tag ${n.change.startsWith('+') ? 'tag-green' : n.change.startsWith('-') ? 'tag-red' : 'tag-green'}`}>{n.change}</span>
+                  <span className={`tag ${n.cat === 'Breaking' ? 'tag-red' : 'tag-green'}`}>{n.cat}</span>
                 </div>
-                <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{n.title}</p>
-                <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body}</p>
-                <div style={{ display: 'flex', gap: 16, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>❤️ 1.3k</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>👎 1.3k</span>
-                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>💬 1.3k</span>
+                <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 8, color: '#111827' }}>{n.title}</p>
+                <p style={{ fontSize: 13, color: '#4B5563', lineHeight: 1.6 }}>{n.body}</p>
+                <div style={{ display: 'flex', gap: 16, marginTop: 14, paddingTop: 12, borderTop: '1px solid #F3F4F6' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF' }}>{(n.createdAt?.seconds ? new Date(n.createdAt.seconds * 1000).toLocaleDateString() : 'Just Now')}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF' }}>by {n.author}</span>
                 </div>
               </div>
             ))}
           </div>
-        ))}
+        )}
       </div>
 
       <BottomNav active="news" />

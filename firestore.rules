@@ -12,7 +12,11 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        request.auth.token.email == 'simplydivyanshk@gmail.com' ||
+        request.auth.token.email == 'divyansh.coredev@gmail.com'
+      );
     }
 
     // USERS (Balance & Profile)
@@ -47,6 +51,12 @@ service cloud.firestore {
     // IPO
     match /ipo_orders/{orderId} {
       allow read, write: if isSignedIn();
+    }
+
+    // ARTICLES (News & Updates)
+    match /articles/{articleId} {
+      allow read: if isSignedIn();
+      allow write, update, delete: if isAdmin();
     }
 
     // SOCIAL

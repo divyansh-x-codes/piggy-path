@@ -45,7 +45,8 @@ const Home = () => {
   const navigate = useNavigate();
   const {
     portfolio, getPortfolioValue, userData,
-    getPrice, getChange, forceSeed, user, stocks, isAdmin
+    getPrice, getChange, forceSeed, user, stocks, isAdmin,
+    publishArticle, deleteArticle, articles
   } = useAppContext();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
@@ -53,6 +54,9 @@ const Home = () => {
 
   const isSuperAdmin = isAdmin;
   const [userLeaderboard, setUserLeaderboard] = React.useState({ data: [], updatedAt: null });
+  const [isNewsModalOpen, setIsNewsModalOpen] = React.useState(false);
+  const [newsForm, setNewsForm] = React.useState({ title: '', body: '', cat: 'Trending', stock: '' });
+  const [isPublishing, setIsPublishing] = React.useState(false);
 
   // 1. Listen for USER LEADERBOARD (Admin View)
   React.useEffect(() => {
@@ -248,8 +252,8 @@ const Home = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ textAlign: 'right' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: 24 }}>
                 <div style={{ color: '#94A3B8', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{userLeaderboard.data?.length || 0} Traders</div>
                 <div 
                   onClick={async () => {
@@ -257,7 +261,7 @@ const Home = () => {
                       await forceSeed();
                     }
                   }}
-                  style={{ color: '#7C3AED', fontSize: '11px', fontWeight: '900', cursor: 'pointer' }}
+                  style={{ color: '#7C3AED', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 4 }}
                 >
                   SYNC DATA ↺
                 </div>
@@ -269,8 +273,41 @@ const Home = () => {
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 100px' }}>
           <motion.div 
             layout
-            style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
           >
+            {/* LARGE PUBLISH BUTTON (MID) */}
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsNewsModalOpen(true)}
+              style={{
+                background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
+                borderRadius: 24,
+                padding: '32px',
+                border: '1.5px solid rgba(99, 102, 241, 0.3)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(99, 102, 241, 0.1)',
+                cursor: 'pointer',
+                textAlign: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: 'rgba(99, 102, 241, 0.1)', borderRadius: '50%', blur: '40px' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A5B4FC" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.2px' }}>PUBLISH NEW BROADCAST</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#A5B4FC', opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>Global Realtime Article System</p>
+                </div>
+              </div>
+            </motion.div>
+
+            <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center' }}>
+               <span style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', letterSpacing: 3, textTransform: 'uppercase' }}>Global Leaderboard</span>
+            </div>
+
             <AnimatePresence mode="popLayout">
             {(userLeaderboard.data || []).length === 0 ? (
               <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(31, 41, 55, 0.2)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -416,6 +453,120 @@ const Home = () => {
             <p style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '4px' }}>Global Leaderboard</p>
           </div>
         </div>
+
+        {/* NEWS PUBLISHING MODAL */}
+        <AnimatePresence>
+          {isNewsModalOpen && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed', inset: 0, 
+                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)',
+                zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                padding: 20
+              }}
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                style={{
+                  width: '100%', maxWidth: 500, background: '#111827',
+                  borderRadius: 32, border: '1px solid rgba(255,255,255,0.1)',
+                  padding: 32, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                  <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: '#FFFFFF' }}>DRAFT NEWS</h2>
+                  <div onClick={() => setIsNewsModalOpen(false)} style={{ cursor: 'pointer', color: '#6B7280' }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Headline</label>
+                    <input 
+                      value={newsForm.title}
+                      onChange={e => setNewsForm({...newsForm, title: e.target.value})}
+                      placeholder="Article Title..."
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14 }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Category</label>
+                      <select 
+                        value={newsForm.cat}
+                        onChange={e => setNewsForm({...newsForm, cat: e.target.value})}
+                        style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, appearance: 'none' }}
+                      >
+                        <option value="Trending">Trending</option>
+                        <option value="Market">Market</option>
+                        <option value="Research">Research</option>
+                        <option value="Breaking">Breaking</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Related Stock</label>
+                      <select 
+                        value={newsForm.stock}
+                        onChange={e => setNewsForm({...newsForm, stock: e.target.value})}
+                        style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, appearance: 'none' }}
+                      >
+                        <option value="">None</option>
+                        {STOCKS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Body Content</label>
+                    <textarea 
+                      value={newsForm.body}
+                      rows={4}
+                      onChange={e => setNewsForm({...newsForm, body: e.target.value})}
+                      placeholder="Write the full report here..."
+                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, resize: 'none' }}
+                    />
+                  </div>
+
+                  <button 
+                    disabled={isPublishing || !newsForm.title || !newsForm.body}
+                    onClick={async () => {
+                      setIsPublishing(true);
+                      const res = await publishArticle({
+                        ...newsForm,
+                        stock: newsForm.stock ? STOCKS.find(s => s.id === newsForm.stock).name : 'Global',
+                        ticker: newsForm.stock ? STOCKS.find(s => s.id === newsForm.stock).ticker : 'N/A',
+                        change: newsForm.cat === 'Trending' ? 'Hot' : newsForm.cat === 'Breaking' ? 'Alert' : 'Market'
+                      });
+                      if (res.success) {
+                        setIsNewsModalOpen(false);
+                        setNewsForm({ title: '', body: '', cat: 'Trending', stock: '' });
+                      } else {
+                        alert("FAILED: " + res.error);
+                      }
+                      setIsPublishing(false);
+                    }}
+                    style={{ 
+                      width: '100%', padding: '18px', borderRadius: 20, 
+                      background: 'linear-gradient(90deg, #7C3AED, #4F46E5)',
+                      color: 'white', fontWeight: '900', border: 'none', cursor: 'pointer',
+                      marginTop: 12, opacity: (isPublishing || !newsForm.title || !newsForm.body) ? 0.5 : 1
+                    }}
+                  >
+                    {isPublishing ? 'PUBLISHING...' : 'PUBLISH REALTIME'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <BottomNav active="home" />
       </div>
     );
@@ -545,28 +696,34 @@ const Home = () => {
         </div>
         {renderPortfolioCards()}
 
-        {/* News Section — using static NEWS data from mockData */}
+        {/* Realtime Market Pulse Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>News</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => goScreen('news')}>View all</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Market Pulse</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/news')}>View all</span>
         </div>
         <div style={{ padding: '0 20px' }}>
-          {NEWS.slice(0, 2).map(n => (
-            <div key={n.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => navigate('/news')}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 36, height: 36, background: 'var(--purple-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--purple)' }}>{n.stock[0]}</div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>{n.stock}</div>
-                    <div style={{ fontSize: 11, color: 'var(--muted)' }}>{n.ticker}</div>
-                  </div>
-                </div>
-                <span className={`tag ${n.change.startsWith('+') ? 'tag-green' : n.change.startsWith('-') ? 'tag-red' : 'tag-green'}`}>{n.change}</span>
-              </div>
-              <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{n.title}</p>
-              <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body.substring(0, 80)}...</p>
+          {articles.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', background: '#f9fafb', borderRadius: 20, border: '1px solid #eee' }}>
+              <p style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>No reports live yet</p>
             </div>
-          ))}
+          ) : (
+            articles.slice(0, 2).map(n => (
+              <div key={n.id} className="card" style={{ marginBottom: 10, cursor: 'pointer' }} onClick={() => navigate('/news')}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 36, height: 36, background: 'var(--purple-light)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: 'var(--purple)' }}>{n.stock[0]}</div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>{n.stock}</div>
+                      <div style={{ fontSize: 11, color: 'var(--muted)' }}>{n.ticker}</div>
+                    </div>
+                  </div>
+                  <span className={`tag ${n.cat === 'Breaking' ? 'tag-red' : 'tag-green'}`}>{n.cat}</span>
+                </div>
+                <p style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: '#111827' }}>{n.title}</p>
+                <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.5 }}>{n.body.substring(0, 80)}...</p>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Featured Listings Section */}
