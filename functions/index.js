@@ -121,11 +121,11 @@ exports.seedData = functions.https.onCall(async (data, context) => {
 
   stocks.forEach(s => {
     const ref = db.collection('stocks').doc(s.id);
-    batch.set(ref, { 
-      ...s, 
-      prevPrice: s.price, 
+    batch.set(ref, {
+      ...s,
+      prevPrice: s.price,
       lastUpdated: admin.firestore.FieldValue.serverTimestamp(),
-      createdAt: admin.firestore.FieldValue.serverTimestamp() 
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
     // Initial history point
@@ -149,7 +149,7 @@ exports.seedData = functions.https.onCall(async (data, context) => {
 });
 exports.marketAnalysis = functions.pubsub.schedule("* * * * *").onRun(async (context) => {
   const stocksSnapshot = await db.collection("stocks").get();
-  
+
   for (const stockDoc of stocksSnapshot.docs) {
     const stock = stockDoc.data();
     const currentPrice = stock.price;
@@ -162,7 +162,7 @@ exports.marketAnalysis = functions.pubsub.schedule("* * * * *").onRun(async (con
 
     if (type) {
       const changeStr = (changePercent >= 0 ? "+" : "") + changePercent.toFixed(2) + "%";
-      
+
       // 1. Create News Entry
       await db.collection("news").add({
         title: `${stock.name} is ${type === "bullish" ? "booming 🚀" : "dropping ⚠️"}`,
@@ -241,8 +241,9 @@ exports.updateStockPrices = functions.pubsub.schedule("* * * * *").onRun(async (
 });
 */
 
-// ENHANCED: LEADERBOARD SYSTEM (REALTIME RANKING)
+// ENHANCED: LEADERBOARD SYSTEM (REALTIME RANKING - RUNS EVERY 1 MIN FOR REALTIME SYNC)
 exports.updateLeaderboard = functions.pubsub.schedule("* * * * *").onRun(async (context) => {
+  console.log("[Leaderboard] Starting global market sync...");
   const snapshot = await db.collection("stocks").get();
   const stocks = [];
 
@@ -259,18 +260,23 @@ exports.updateLeaderboard = functions.pubsub.schedule("* * * * *").onRun(async (
       symbol: data.ticker || data.symbol,
       name: data.name,
       price: data.price,
-      change: Number(change.toFixed(2))
+      change: Number(change.toFixed(2)),
+      updatedAt: data.updatedAt || Date.now()
     });
   });
 
-  const topGainers = [...stocks].sort((a, b) => b.change - a.change).slice(0, 5);
+  // Calculate top gainers/losers for backward compatibility
+  const rankedData = [...stocks].sort((a, b) => b.change - a.change);
+  const topGainers = rankedData.slice(0, 5);
   const topLosers = [...stocks].sort((a, b) => a.change - b.change).slice(0, 5);
 
   await db.collection("leaderboard").doc("global").set({
+    data: rankedData,
     topGainers,
     topLosers,
     lastUpdated: admin.firestore.FieldValue.serverTimestamp()
   });
 
+  console.log(`[Leaderboard] Market sync complete. ${rankedData.length} stocks indexed.`);
   return null;
 });

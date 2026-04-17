@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
 import { STOCKS as MOCK_STOCKS } from '../data/mockData';
@@ -22,7 +23,7 @@ export const AppProvider = ({ children }) => {
 
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [userData, setUserData] = useState({ balance: 100000 });
+  const [userData, setUserData] = useState({ balance: 50000 });
   const [loading, setLoading] = useState(true);
   const [portfolio, setPortfolio] = useState({ holdings: {} }); // STRICT STRUCTURE
   const [stocks, setStocks] = useState({});
@@ -58,14 +59,14 @@ export const AppProvider = ({ children }) => {
     try {
       console.log("[Firestore] Fetching Stocks (One-time)...");
       const snap = await getDocs(collection(db, 'stocks'));
-      
+
       let stockMap = {};
       if (snap.empty) {
         // Simple auto-seed if empty
         console.log('[Firestore] Seeding stocks...');
         for (const stock of MOCK_STOCKS) {
           await setDoc(doc(db, 'stocks', stock.id), {
-            name: stock.name, ticker: stock.ticker, 
+            name: stock.name, ticker: stock.ticker,
             price: stock.basePrice, prevPrice: stock.basePrice,
             history: [stock.basePrice],
             updatedAt: Date.now()
@@ -82,36 +83,22 @@ export const AppProvider = ({ children }) => {
         if (!stockMap[stock.id]) {
           console.log(`[Firestore] Seeding missing stock: ${stock.id}`);
           const xadsRef = doc(db, 'stocks', stock.id);
-          await setDoc(xadsRef, { 
-            name: stock.name, 
+          await setDoc(xadsRef, {
+            name: stock.name,
             symbol: stock.ticker,
-            price: stock.basePrice, 
-            prevPrice: stock.basePrice, 
-            history: [stock.basePrice], 
-            updatedAt: Date.now() 
+            price: stock.basePrice,
+            prevPrice: stock.basePrice,
+            history: [stock.basePrice],
+            updatedAt: Date.now()
           }, { merge: true });
-          stockMap[stock.id] = { 
-            name: stock.name, 
+          stockMap[stock.id] = {
+            name: stock.name,
             symbol: stock.ticker,
-            price: stock.basePrice, 
-            prevPrice: stock.basePrice, 
+            price: stock.basePrice,
+            prevPrice: stock.basePrice,
             history: [stock.basePrice]
           };
         }
-      }
-
-      // ─── FORCED SYNC FOR USER REQUEST (XADS Price = 80) ───
-      if (stockMap['xads'] && (stockMap['xads'].price !== 80 || stockMap['xads'].prevPrice !== 80)) {
-        const xadsRef = doc(db, 'stocks', 'xads');
-        await setDoc(xadsRef, { 
-          price: 80, 
-          prevPrice: 80, 
-          history: [80], 
-          updatedAt: Date.now() 
-        }, { merge: true });
-        stockMap['xads'].price = 80;
-        stockMap['xads'].prevPrice = 80;
-        stockMap['xads'].history = [80];
       }
 
       setStocks(stockMap);
@@ -120,45 +107,56 @@ export const AppProvider = ({ children }) => {
 
   // ─── AUTH + INITIAL LOAD ───────────────────────────────────────────────────
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    let unsubProfile = null;
+    let unsubPortfolio = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log("---------- AUTH_STATE_CHANGE ----------");
       console.log("UID:", firebaseUser?.uid || 'NO_USER');
       
+      // Clear existing listeners
+      if (unsubProfile) unsubProfile();
+      if (unsubPortfolio) unsubPortfolio();
+
       try {
         if (firebaseUser) {
           setUser(firebaseUser);
           
+          // 1. Live Profile Listener
           const userRef = doc(db, 'users', firebaseUser.uid);
-          const userSnap = await getDoc(userRef);
+          unsubProfile = onSnapshot(userRef, (snap) => {
+            if (snap.exists()) setUserData(snap.data());
+          });
 
-          let currentProfile;
+          // 2. Live Portfolio Listener
+          const portfolioRef = doc(db, 'portfolios', firebaseUser.uid);
+          unsubPortfolio = onSnapshot(portfolioRef, (snap) => {
+            if (snap.exists()) setPortfolio(snap.data());
+            else setPortfolio({ holdings: {} });
+          });
+
+          // Initial profile check for new users
+          const userSnap = await getDoc(userRef);
           if (!userSnap.exists()) {
-            console.log("[AppContext] PROFILE_MISSING - Initializing new user");
-            currentProfile = { 
-              balance: 100000, 
+            console.log("[AppContext] INITIALIZING NEW USER");
+            const newProfile = { 
+              balance: 50000, 
               role: firebaseUser.email === 'simplydivyanshk@gmail.com' ? 'admin' : 'user',
               displayName: firebaseUser.displayName || 'Investor',
               email: firebaseUser.email,
               createdAt: Date.now() 
             };
-            await setDoc(userRef, currentProfile);
+            await setDoc(userRef, newProfile);
             await setDoc(doc(db, 'portfolios', firebaseUser.uid), { holdings: {}, updatedAt: Date.now() });
           } else {
-            currentProfile = userSnap.data();
+            setIsAdmin(firebaseUser.email === 'simplydivyanshk@gmail.com' || userSnap.data().role === 'admin');
           }
           
-          setUserData(currentProfile);
-          setIsAdmin(firebaseUser.email === 'simplydivyanshk@gmail.com' || currentProfile.role === 'admin');
-          console.log("[AppContext] Admin Status:", (firebaseUser.email === 'simplydivyanshk@gmail.com' || currentProfile.role === 'admin'));
-          
-          // Parallel fetch to speed up loading
-          await Promise.all([
-            fetchStocks(),
-            fetchPortfolio(firebaseUser.uid)
-          ]);
+          // One-time fetch of stocks (market fallback)
+          fetchStocks();
         } else {
           setUser(null);
-          setUserData({ balance: 100000 });
+          setUserData({ balance: 50000 });
           setPortfolio({ holdings: {} });
           setIsAdmin(false);
         }
@@ -166,11 +164,49 @@ export const AppProvider = ({ children }) => {
         console.error("CRITICAL_AUTH_INIT_ERROR:", err);
       } finally {
         setLoading(false);
-        console.log("[AppContext] Loading finished.");
       }
     });
-    return unsubscribe;
-  }, [fetchStocks, fetchPortfolio]);
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubProfile) unsubProfile();
+      if (unsubPortfolio) unsubPortfolio();
+    };
+  }, [fetchStocks]);
+
+  // ─── MARKET DATA LISTENERS (CENTRALIZED & PROPER REAL-TIME) ───────────
+  useEffect(() => {
+    console.log("[AppContext] Subscribing to LIVE Stock Collection...");
+    
+    // Listen to ALL stock documents for instant updates across the app
+    const unsubStocks = onSnapshot(collection(db, 'stocks'), (snap) => {
+      let stockMap = {};
+      snap.forEach(doc => {
+        stockMap[doc.id] = doc.data();
+      });
+      
+      if (Object.keys(stockMap).length > 0) {
+        setStocks(prev => ({ ...prev, ...stockMap }));
+      }
+    });
+
+    // Keep the leaderboard listener as a fallback for metadata, but stocks-direct is authoritative
+    const unsubMarket = onSnapshot(doc(db, 'leaderboard', 'global'), (snap) => {
+      if (snap.exists()) {
+        const marketData = snap.data().data || snap.data().topGainers || [];
+        let stockMap = {};
+        marketData.forEach(item => { if (item.id) stockMap[item.id] = item; });
+        if (Object.keys(stockMap).length > 0) {
+          setStocks(prev => ({ ...prev, ...stockMap }));
+        }
+      }
+    });
+
+    return () => {
+      unsubStocks();
+      unsubMarket();
+    };
+  }, []);
 
   // Debug Logs
   useEffect(() => {
@@ -206,6 +242,34 @@ export const AppProvider = ({ children }) => {
     }, 0);
   }, [portfolio, getPrice]);
 
+  // ─── ADMIN PRICE MANIPULATION ─────────────────────────────────────────────
+  const manipulatePrice = async (stockId, changePercent) => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    const sid = stockId.toLowerCase();
+    const stockRef = doc(db, 'stocks', sid);
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(stockRef);
+        if (!snap.exists()) throw "Stock not found";
+
+        const currentPrice = snap.data().price;
+        const newPrice = +(currentPrice * (1 + changePercent / 100)).toFixed(2);
+        const history = snap.data().history || [];
+
+        tx.update(stockRef, {
+          price: newPrice,
+          history: [...history.slice(-49), newPrice],
+          updatedAt: Date.now()
+        });
+      });
+      return { success: true };
+    } catch (e) {
+      console.error("Manipulation Error:", e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
   // ─── BUY/SELL TRANSACTION (STRICT LOGIC) ──────────────────────────────────
   const confirmTrade = async (type, stockId, quantity) => {
     if (!user) return { success: false, error: 'User not authenticated' };
@@ -235,6 +299,11 @@ export const AppProvider = ({ children }) => {
         const current = holdings[sid] || { qty: 0, avgPrice: 0 };
 
         if (type === 'buy') {
+          // ─── 10 UNIT PER-TRANSACTION LIMIT ───
+          if (qty > 10) {
+            throw "Maximum 10 shares per order! You can buy again in a separate transaction.";
+          }
+
           if (userData.balance < totalValue) throw "Insufficient balance (Balance: ₹" + Math.floor(userData.balance) + ")";
 
           // 1. Deduct Balance
@@ -272,12 +341,12 @@ export const AppProvider = ({ children }) => {
           tx.update(stockRef, { price: newPrice, history: [...history.slice(-49), newPrice], updatedAt: Date.now() });
         }
       });
-      
+
       // OPTIMIZATION: Manually refresh local data after success to avoid idle listeners
       await fetchUserData(user.uid);
       await fetchPortfolio(user.uid);
       await fetchStocks();
-      
+
       return { success: true };
     } catch (err) {
       console.error('Trade Error:', err);
@@ -289,17 +358,17 @@ export const AppProvider = ({ children }) => {
     if (!user) return { success: false, error: 'User not authenticated' };
     try {
       console.log("[Reset] Resetting all market and user data...");
-      
+
       // 1. Reset Portfolio for current user
-      await setDoc(doc(db, 'portfolios', user.uid), { 
-        holdings: {}, 
-        updatedAt: Date.now() 
+      await setDoc(doc(db, 'portfolios', user.uid), {
+        holdings: {},
+        updatedAt: Date.now()
       });
-      
-      // 2. Reset User Balance to 100,000
-      await setDoc(doc(db, 'users', user.uid), { 
-        balance: 100000, 
-        updatedAt: Date.now() 
+
+      // 2. Reset User Balance to 50,000
+      await setDoc(doc(db, 'users', user.uid), {
+        balance: 50000,
+        updatedAt: Date.now()
       }, { merge: true });
 
       // 3. Reset All Stock Prices to their base values (from MOCK_STOCKS)
@@ -327,9 +396,29 @@ export const AppProvider = ({ children }) => {
   };
 
   const forceSeed = async () => {
-    console.log('[Firestore] Manual seed triggered...');
-    for (const stock of MOCK_STOCKS) {
-      try {
+    console.log('[Firestore] Exclusive Seed Triggered — Removing unknown companies...');
+    try {
+      // 1. Get all current stocks in Firestore
+      const snap = await getDocs(collection(db, 'stocks'));
+      
+      // 2. Determine which ones to DELETE (not in MOCK_STOCKS)
+      const mockIds = MOCK_STOCKS.map(s => s.id);
+      const toDelete = [];
+      snap.forEach(doc => {
+        if (!mockIds.includes(doc.id)) toDelete.push(doc.id);
+      });
+
+      console.log(`[Firestore] Found ${toDelete.length} companies to remove:`, toDelete);
+
+      // 3. Delete foreign companies
+      for (const id of toDelete) {
+        await runTransaction(db, async (tx) => {
+          tx.delete(doc(db, 'stocks', id));
+        });
+      }
+
+      // 4. Seed/Update the 14 core companies
+      for (const stock of MOCK_STOCKS) {
         await runTransaction(db, async (tx) => {
           const ref = doc(db, 'stocks', stock.id);
           tx.set(ref, {
@@ -340,12 +429,15 @@ export const AppProvider = ({ children }) => {
             history: [stock.basePrice],
             updatedAt: Date.now(),
             lastUpdated: serverTimestamp()
-          });
+          }, { merge: true });
         });
-      } catch (e) {
-        console.error('Seed failed', e);
-        throw e;
       }
+      
+      console.log('[Firestore] Database Cleaned & Seeded!');
+      await fetchStocks();
+    } catch (e) {
+      console.error('Exclusive Seed failed', e);
+      throw e;
     }
   };
 
@@ -362,7 +454,7 @@ export const AppProvider = ({ children }) => {
       isAdmin, loading,
       stocks, // Add this
       getPrice, getChange, getPriceHistory, getPortfolioValue,
-      confirmTrade, applyIPO, forceSeed, resetData,
+      confirmTrade, applyIPO, forceSeed, resetData, manipulatePrice,
       STOCKS: MOCK_STOCKS
     }}>
       {children}

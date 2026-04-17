@@ -1,245 +1,349 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../context/AppContext';
 import { BottomNav } from '../components/Shared';
+import { Line } from 'react-chartjs-2';
+import { STOCKS } from '../data/mockData';
+import { 
+  Battery, LayoutGrid, GraduationCap, Users, 
+  Activity, Brain, Cross, Landmark, Wheat, 
+  Pizza, PiggyBank, Briefcase, Zap, TrendingUp 
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const PriceDisplay = ({ price, isUp }) => {
+  const [prevPrice, setPrevPrice] = React.useState(price);
+  const [flash, setFlash] = React.useState(false);
+
+  React.useEffect(() => {
+    if (price !== prevPrice) {
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 600);
+      setPrevPrice(price);
+      return () => clearTimeout(timer);
+    }
+  }, [price, prevPrice]);
+
+  return (
+    <motion.div
+      animate={flash ? { 
+        scale: [1, 1.1, 1],
+        color: isUp ? ['#FFFFFF', '#4ADE80', '#FFFFFF'] : ['#FFFFFF', '#F87171', '#FFFFFF']
+      } : {}}
+      transition={{ duration: 0.5 }}
+      style={{ fontSize: '16px', fontWeight: '900', color: '#FFFFFF', marginBottom: '6px' }}
+    >
+      ₹{price.toLocaleString('en-IN')}
+    </motion.div>
+  );
+};
 
 const AdminPanel = () => {
   const navigate = useNavigate();
-  const { stocks, isAdmin, resetData } = useAppContext();
+  const { stocks, isAdmin, resetData, manipulatePrice } = useAppContext();
+  const [expandedId, setExpandedId] = useState(null);
+  const [manipulating, setManipulating] = useState(null); // id being updated
 
-  // Internal state to track the "Visual" order for sequential movement
-  const [displayedList, setDisplayedList] = useState([]);
-
-  // 1. MASTER MONITOR LOGIC: CALCULATE TARGET RANKING
-  const targetLeaderboard = useMemo(() => {
-    const stockList = Object.entries(stocks || {}).map(([id, s]) => {
-      const price = s.price || 0;
-      const prev = s.prevPrice || price;
+  // 1. MASTER MONITOR LOGIC: CALCULATE TARGET RANKING (Strictly 14 companies)
+  const masterLeaderboard = React.useMemo(() => {
+    return STOCKS.map(s => {
+      const live = stocks[s.id] || {};
+      const price = live.price || s.basePrice || 0;
+      const prev = live.prevPrice || price;
       const change = prev !== 0 ? ((price - prev) / prev) * 100 : 0;
-      return {
-        id,
-        symbol: s.symbol,
-        name: s.name,
-        price,
+      return { 
+        ...s, 
+        price, 
         change,
-        totalHoldings: s.totalHoldings || 0
+        history: live.history || [price, price]
       };
-    });
-    return [...stockList].sort((a, b) => b.change - a.change);
+    }).sort((a, b) => b.change - a.change);
   }, [stocks]);
 
-  // 2. INITIALIZE DISPLAYED LIST
-  useEffect(() => {
-    if (displayedList.length === 0 && targetLeaderboard.length > 0) {
-      setDisplayedList(targetLeaderboard);
+  const renderSparkline = (id, historyData) => {
+    const history = (historyData || []).slice(-20);
+    const isUp = history[history.length - 1] >= history[0];
+    const chartColor = isUp ? '#4ADE80' : '#F87171'; // Glowing green / red
+
+    const data = {
+      labels: history.map(() => ''),
+      datasets: [{
+        data: history,
+        borderColor: chartColor,
+        borderWidth: 2,
+        tension: 0.4,
+        pointRadius: 0,
+        fill: true,
+        backgroundColor: (context) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 40);
+          gradient.addColorStop(0, isUp ? 'rgba(74, 222, 128, 0.2)' : 'rgba(248, 113, 113, 0.2)');
+          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          return gradient;
+        },
+      }]
+    };
+
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: { x: { display: false }, y: { display: false } },
+      animation: { duration: 0 }
+    };
+
+    return (
+      <div style={{ width: 100, height: 40, position: 'relative' }}>
+        <Line data={data} options={options} />
+      </div>
+    );
+  };
+
+  const getStockIcon = (id, color = "white") => {
+    const props = { size: 20, color, strokeWidth: 2.5 };
+    switch(id.toLowerCase()) {
+      case 'vnst': return <Battery {...props} />;
+      case 'xads': return <LayoutGrid {...props} />;
+      case 'sklbr': return <GraduationCap {...props} />;
+      case 'prspr': return <Users {...props} />;
+      case 'nrtk': return <Activity {...props} />;
+      case 'nriq': return <Brain {...props} />;
+      case 'mdnb': return <Cross {...props} />;
+      case 'kspay': return <Landmark {...props} />;
+      case 'crpp': return <Wheat {...props} />;
+      case 'snac': return <Pizza {...props} />;
+      case 'piggy': return <PiggyBank {...props} />;
+      case 'proqm': return <Briefcase {...props} />;
+      case 'elite': return <Zap {...props} />;
+      case 'mookh': return <Brain {...props} />;
+      default: return <Zap {...props} />;
     }
-  }, [targetLeaderboard]);
-
-  // 3. SEQUENTIAL SYNC LOOP ("One-by-One" Logic)
-  // This effect gradually moves items towards their target indices
-  const syncTimer = useRef(null);
-  useEffect(() => {
-    if (!isAdmin || displayedList.length === 0) return;
-
-    // Check if current order matches target order
-    const isIdentical = displayedList.every((s, i) => s.id === targetLeaderboard[i]?.id);
-
-    // 1. FRESH DATA SYNC (Always keep prices/stats updated in the current displayed order)
-    const dataUpdatedList = displayedList.map(s => {
-      const fresh = targetLeaderboard.find(t => t.id === s.id);
-      return fresh ? { ...s, ...fresh } : s;
-    });
-
-    const dataChanged = JSON.stringify(displayedList) !== JSON.stringify(dataUpdatedList);
-
-    // 2. SEQUENTIAL RANK SWAP (One step at a time)
-    if (!isIdentical) {
-      const nextList = [...dataUpdatedList]; // Use the fresh data version for swapping
-      let changed = false;
-
-      for (let i = 0; i < nextList.length - 1; i++) {
-        const currentItem = nextList[i];
-        const targetIndex = targetLeaderboard.findIndex(s => s.id === currentItem.id);
-        if (targetIndex > i) {
-          [nextList[i], nextList[i + 1]] = [nextList[i + 1], nextList[i]];
-          changed = true;
-          break;
-        }
-      }
-
-      if (!changed) {
-        for (let i = nextList.length - 1; i > 0; i--) {
-          const currentItem = nextList[i];
-          const targetIndex = targetLeaderboard.findIndex(s => s.id === currentItem.id);
-          if (targetIndex < i) {
-            [nextList[i], nextList[i - 1]] = [nextList[i - 1], nextList[i]];
-            changed = true;
-            break;
-          }
-        }
-      }
-
-      if (changed) {
-        syncTimer.current = setTimeout(() => {
-          setDisplayedList(nextList);
-        }, 150);
-        return () => clearTimeout(syncTimer.current);
-      }
-    }
-
-    // 3. APPLY DATA UPDATES IF NO SWAP IS PENDING
-    if (dataChanged) {
-      setDisplayedList(dataUpdatedList);
-    }
-
-    return () => clearTimeout(syncTimer.current);
-  }, [targetLeaderboard, displayedList, isAdmin]);
-
-  // Final list to render
-  const finalRenderList = isAdmin ? displayedList : targetLeaderboard;
+  };
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#0B1222', color: 'white', fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ 
+      flex: 1, display: 'flex', flexDirection: 'column', height: '100%', 
+      background: 'linear-gradient(180deg, #101827 0%, #0B0F1A 100%)',
+      color: 'white', fontFamily: "'Inter', sans-serif" 
+    }}>
 
-      {/* HEADER - MATCHING SCREENSHOT */}
-      <div style={{ padding: '32px 24px 24px', background: 'transparent' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+      {/* HEADER - INNOVATION LEADERSHIP */}
+      <div style={{ padding: '36px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.5px' }}>MARKET TERMINAL</h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-              <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#10B981', borderRadius: '50%' }}></div>
-              <span style={{ fontSize: '10px', fontWeight: '900', color: '#10B981', letterSpacing: '1px', textTransform: 'uppercase' }}>Pure Realtime Sync</span>
+            <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.3px', color: '#FFFFFF', textShadow: '0 0 20px rgba(255,255,255,0.1)' }}>LEADERBOARD</h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+              <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#4ADE80', borderRadius: '50%', boxShadow: '0 0 10px #4ADE80' }}></div>
+              <span style={{ fontSize: '10px', fontWeight: '900', color: '#4ADE80', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Live Innovation Sync</span>
             </div>
           </div>
-          
-          <button 
-            onClick={async () => {
-              if (window.confirm("RESET EVERYTHING? Total holdings will be zero and prices will reset to 80.")) {
-                const res = await resetData();
-                if (res.success) alert("Application Reset Successfully!");
-                else alert("Reset Failed: " + res.error);
-              }
-            }}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: 'rgba(239, 68, 68, 0.1)',
-              border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#EF4444',
-              fontSize: '11px',
-              fontWeight: '900',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}
-          >
-            Reset App
-          </button>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: '#94A3B8', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{masterLeaderboard.length} Stocks</div>
+              <div style={{ color: '#FFFFFF', fontSize: '14px', fontWeight: '900' }}>Active</div>
+            </div>
+            <button
+              onClick={async () => {
+                if (window.confirm("RESET SYSTEM? This will restore market defaults.")) {
+                  const res = await resetData();
+                  if (res.success) alert("🟢 Core Re-Seeded");
+                }
+              }}
+              style={{
+                width: 44, height: 44, borderRadius: '12px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#F87171',
+                fontSize: '16px',
+                cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              🔄
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-4 pb-32">
-        <AnimatePresence mode="popLayout">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {finalRenderList.map((stock, i) => {
-              const chg = stock.change;
-              const isUp = chg > 0;
-              const isNeutral = chg === 0;
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 100px' }}>
+        <motion.div 
+          layout
+          style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+        >
+          <AnimatePresence mode="popLayout">
+          {masterLeaderboard.map((stock, i) => {
+            const chg = stock.change;
+            const isUp = chg >= 0;
+            const isExpanded = expandedId === stock.id;
+            const cardThemeColor = isUp ? '#4ADE80' : '#F87171';
 
-              return (
-                <motion.div
-                  key={stock.id}
-                  layout={isAdmin}
-                  initial={isAdmin ? { opacity: 0, scale: 0.95 } : false}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={isAdmin ? { opacity: 0, scale: 0.95 } : false}
-                  transition={{
-                    layout: {
-                      type: "spring",
-                      stiffness: 150,
-                      damping: 18,
-                      // Moving UP slightly faster logic can be handled by damping variation if needed,
-                      // but global stiffness 150/18 is a balanced high-fidelity choice.
-                    },
-                    scale: { duration: 0.2 }
+            return (
+              <motion.div 
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                key={stock.id} 
+                className="innovation-card"
+                style={{
+                  background: 'rgba(31, 41, 55, 0.3)',
+                  backdropFilter: 'blur(12px)',
+                  borderRadius: '24px',
+                  border: isExpanded ? `1.5px solid ${cardThemeColor}` : '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: isExpanded ? `0 0 30px ${cardThemeColor}11` : 'none',
+                  overflow: 'hidden',
+                  transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+                  position: 'relative'
+                }}
+              >
+                {/* Rank Badge */}
+                <motion.div 
+                  layout
+                  style={{ 
+                    position: 'absolute', top: 12, left: 14, 
+                    fontSize: '11px', fontWeight: '900', color: cardThemeColor, 
+                    background: `${cardThemeColor}11`, padding: '2px 8px', borderRadius: 8,
+                    zIndex: 2
                   }}
-                  // Scale deep effect during rank shift
-                  whileHover={isAdmin ? { scale: 1.02, boxShadow: '0 8px 30px rgba(0,0,0,0.4)', zIndex: 10 } : {}}
+                >
+                  {i + 1}
+                </motion.div>
+
+                <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    background: 'rgba(30, 41, 59, 0.4)',
-                    borderRadius: '20px',
-                    border: '1px solid rgba(51, 65, 85, 0.5)',
-                    backdropFilter: 'blur(10px)',
+                    padding: '24px 18px 18px',
                     cursor: 'pointer',
-                    position: 'relative'
+                    opacity: manipulating === stock.id ? 0.4 : 1,
+                    gap: 12
                   }}
-                  onClick={() => navigate(`/stock/${stock.id}`)}
+                  onClick={() => setExpandedId(isExpanded ? null : stock.id)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1 }}>
+                  {/* Left: Info (35% width) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 35%', minWidth: 0 }}>
                     <div style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '10px',
-                      background: i < 3 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(51, 65, 85, 0.4)',
+                      width: '48px',
+                      height: '48px',
+                      flexShrink: 0,
+                      borderRadius: '16px',
+                      background: 'rgba(0, 0, 0, 0.4)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '13px',
-                      fontWeight: '900',
-                      color: i < 3 ? '#F59E0B' : '#94A3B8',
-                      border: i < 3 ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(51, 65, 85, 0.2)'
+                      border: `1.5px solid ${cardThemeColor}33`,
+                      boxShadow: `inset 0 0 15px ${cardThemeColor}11`
                     }}>
-                      {i + 1}
+                      {getStockIcon(stock.id, cardThemeColor)}
                     </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontSize: '16px', fontWeight: '900', color: 'white' }}>{stock.symbol}</span>
-                        {i < 3 && (
-                          <span style={{
-                            fontSize: '9px',
-                            fontWeight: '900',
-                            background: '#F59E0B',
-                            color: '#451a03',
-                            padding: '2px 8px',
-                            borderRadius: '6px',
-                            textTransform: 'uppercase'
-                          }}>
-                            TOP
-                          </span>
-                        )}
+                    
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        fontWeight: '900', 
+                        color: '#FFFFFF', 
+                        letterSpacing: '-0.2px', 
+                        whiteSpace: 'nowrap', 
+                        overflow: 'hidden', 
+                        textOverflow: 'ellipsis' 
+                      }} title={stock.name}>
+                        {stock.name}
                       </div>
-                      <div style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>{stock.name}</div>
+                      <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', marginTop: 2, display: 'flex', gap: 4, alignItems: 'center' }}>
+                        <span>{stock.ticker}</span>
+                        <span style={{ width: 3, height: 3, background: '#4B5563', borderRadius: '50%' }}></span>
+                        <span style={{ color: '#64748B' }}>{stock.sector.split('/')[0]}</span>
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '16px', fontWeight: '900', color: 'white', marginBottom: '2px' }}>₹{stock.price.toLocaleString()}</div>
+                  {/* Center: Graph (30% width) */}
+                  <div style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <div style={{ width: '100%', maxWidth: '100px', display: 'flex', justifyContent: 'center' }}>
+                      {renderSparkline(stock.id, stock.history)}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.2)', padding: '2px 8px', borderRadius: 6 }}>
+                      <TrendingUp size={10} color="#4ADE80" />
+                      <span style={{ fontSize: '8px', fontWeight: '900', color: '#94A3B8', letterSpacing: 0.5 }}>UP 2 SPOTS</span>
+                    </div>
+                  </div>
+
+                  {/* Right: Pricing (30% width) */}
+                  <div style={{ textAlign: 'right', flex: '0 0 30%', minWidth: 80 }}>
+                    <PriceDisplay price={stock.price} isUp={isUp} />
                     <div style={{
-                      fontSize: '12px',
+                      padding: '4px 8px',
+                      borderRadius: '8px',
+                      background: isUp ? 'rgba(74, 222, 128, 0.1)' : 'rgba(248, 113, 113, 0.1)',
+                      border: `1px solid ${cardThemeColor}22`,
+                      color: cardThemeColor,
+                      fontSize: '11px',
                       fontWeight: '900',
-                      color: isNeutral ? '#94A3B8' : (isUp ? '#10B981' : '#EF4444'),
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
-                      justifyContent: 'flex-end',
-                      gap: '2px'
+                      gap: 4
                     }}>
-                      {isNeutral ? '•' : (isUp ? '▲' : '▼')}
-                      {isNeutral ? '0.00%' : `${Math.abs(chg).toFixed(2)}%`}
+                      {isUp ? '▲' : '▼'} {Math.abs(chg).toFixed(2)}%
                     </div>
                   </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        </AnimatePresence>
+                </div>
 
-        <div style={{ padding: '60px 0', textAlign: 'center' }}>
-          <p style={{ fontSize: '11px', color: '#475569', fontWeight: '800', letterSpacing: '3px', textTransform: 'uppercase', opacity: 0.6 }}>End of Market Stream</p>
+                {/* PROGESS BAR (Gradients) */}
+                <div style={{ height: '4px', width: '100%', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
+                   <div style={{ 
+                     height: '100%', 
+                     width: `${Math.max(20, 100 - (i * 6))}%`, 
+                     background: `linear-gradient(90deg, ${cardThemeColor}22, ${cardThemeColor})`,
+                     boxShadow: `0 0 15px ${cardThemeColor}44`,
+                     borderRadius: '0 4px 4px 0'
+                   }} />
+                </div>
+
+                {/* MANIPULATION TRAY */}
+                {isExpanded && (
+                  <div style={{ padding: '16px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(75, 85, 99, 0.2)', display: 'flex', gap: 10 }}>
+                    <button 
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setManipulating(stock.id);
+                        await manipulatePrice(stock.id, 10);
+                        setManipulating(null);
+                      }}
+                      className="glow-button-green"
+                      style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: '#DCFCE7', color: '#15803D', fontWeight: 900, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      🚀 BOOST PRICE +10%
+                    </button>
+                    <button 
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setManipulating(stock.id);
+                        await manipulatePrice(stock.id, -10);
+                        setManipulating(null);
+                      }}
+                      className="glow-button-red"
+                      style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: '#FEE2E2', color: '#B91C1C', fontWeight: 900, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      📉 CRASH PRICE -10%
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); navigate(`/stock/${stock.id}`); }}
+                      style={{ padding: '12px 20px', borderRadius: 12, border: '1px solid #4B5563', background: 'transparent', color: '#94A3B8', fontWeight: 900, fontSize: 11, cursor: 'pointer' }}
+                    >
+                      REPORT
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+          </AnimatePresence>
+        </motion.div>
+
+        <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.2 }}>
+          <p style={{ fontSize: '11px', color: '#111', fontWeight: '800', letterSpacing: '4px', textTransform: 'uppercase' }}>Markets Open</p>
         </div>
       </div>
 

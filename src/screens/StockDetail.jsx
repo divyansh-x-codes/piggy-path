@@ -145,7 +145,7 @@ const StockDetail = () => {
     }
   };
 
-  const goBack = () => navigate('/home');
+  const goBack = () => navigate(-1);
   const goScreen = (scr) => navigate(`/${scr}`);
 
   return (
@@ -511,14 +511,37 @@ const StockDetail = () => {
               <div style={{ fontFamily: "'Syne', sans-serif", fontWeight: 800, fontSize: 34, color: 'black' }}>₹ {price.toLocaleString()}</div>
             </div>
 
+            {/* QUANTITY INPUT - FLEXIBLE & LIMIT AWARE */}
             <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 13, fontWeight: 700, color: 'black', marginBottom: 8, display: 'block' }}>Quantity</label>
-              <input type="number" value={tradeQty} min="1" onChange={(e) => setTradeQty(Number(e.target.value) || 1)} style={{ width: '100%', padding: '14px 18px', borderRadius: 14, border: '1px solid #e5e7eb', fontSize: 18, fontWeight: 700, boxSizing: 'border-box', background: '#f9fafb', outline: 'none' }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: 'black' }}>Quantity</label>
+                {tradeType === 'buy' && (
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#64748B' }}>
+                    Max per order: 10
+                  </span>
+                )}
+              </div>
+              <input 
+                type="number" 
+                value={tradeQty} 
+                min="0"
+                max={tradeType === 'buy' ? 10 : qty}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '') { setTradeQty(''); return; }
+                  setTradeQty(parseInt(val) || 0);
+                }} 
+                style={{ 
+                  width: '100%', padding: '14px 18px', borderRadius: 14, 
+                  border: '1px solid #e5e7eb', fontSize: 18, fontWeight: 700, 
+                  boxSizing: 'border-box', background: '#f9fafb', outline: 'none' 
+                }} 
+              />
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderTop: '1px solid #f3f4f6', borderBottom: '1px solid #f3f4f6', marginBottom: 20 }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Total</span>
-              <span style={{ fontWeight: 800, fontSize: 18, color: 'black' }}>₹ {(price * tradeQty).toFixed(2)}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Total Cost</span>
+              <span style={{ fontWeight: 800, fontSize: 18, color: 'black' }}>₹ {(price * (Number(tradeQty) || 0)).toFixed(2)}</span>
             </div>
 
             {tradeType === 'buy' && (
@@ -533,6 +556,13 @@ const StockDetail = () => {
                 <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>Shares Owned</span>
                 <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 800 }}>{qty} shares</span>
               </div>
+            )}
+
+            {/* ERROR MESSAGE IF ORDER LIMIT EXCEEDED */}
+            {tradeType === 'buy' && (Number(tradeQty) > 10) && (
+               <div style={{ color: '#EF4444', fontSize: 11, fontWeight: 800, textAlign: 'center', marginBottom: 12 }}>
+                 ⚠️ MAX 10 SHARES PER ORDER
+               </div>
             )}
 
             <button
