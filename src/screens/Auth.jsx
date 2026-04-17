@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { auth, provider } from '../lib/firebase';
-import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { signInWithRedirect, getRedirectResult, signInWithPopup } from 'firebase/auth';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading, isAdmin } = useAppContext();
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'signup'
   const [email, setEmail] = useState('');
@@ -16,22 +17,22 @@ const Auth = () => {
 
   // 1. WATCH GLOBAL USER STATE: Redirect if already logged in or login completes
   useEffect(() => {
+    // If not loading and session found, go home (or wherever we came from)
     if (!authLoading && user) {
-      console.log("Auth: User detected, redirecting to", isAdmin ? '/admin' : '/home');
-      if (isAdmin) navigate('/admin', { replace: true });
-      else navigate('/home', { replace: true });
+      const from = location.state?.from?.pathname || (isAdmin ? '/admin' : '/home');
+      console.log("Auth: User detected, redirecting to", from);
+      navigate(from, { replace: true });
     }
-  }, [user, authLoading, isAdmin, navigate]);
+  }, [user, authLoading, isAdmin, navigate, location]);
 
-  // 2. HANDLE REDIRECT RESULT: Catch errors or success from Firebase redirect
+  // 2. HANDLE REDIRECT RESULT: Catch errors or success from Firebase redirect (fallback)
   useEffect(() => {
     const handleRedirect = async () => {
       try {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
-          // Success! Context listener in AppContext will pick up the user 
-          // and trigger the useEffect above for navigation.
-          setLocalLoading(true); // Show processing state while context catches up
+          console.log("Auth: Redirect success detected");
+          setLocalLoading(true); 
         }
       } catch (err) {
         console.error('Redirect login error:', err);
@@ -64,15 +65,43 @@ const Auth = () => {
     setLocalLoading(true);
     setError('');
     try {
-      // signInWithRedirect for mobile browser compatibility
-      await signInWithRedirect(auth, provider);
+      console.log("[Auth] Starting Google Popup Sign-in...");
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        console.log("[Auth] Popup Success, user:", result.user.email);
+        // Navigation will be handled by the useEffect watching 'user'
+      }
     } catch (err) {
-      setError(err.message || 'Login failed');
-      setLocalLoading(false);
+      console.error("[Auth] Popup Error:", err);
+      // Fallback to redirect if popup is blocked or fails
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
+        try {
+          await signInWithRedirect(auth, provider);
+        } catch (redirErr) {
+          setError(redirErr.message || 'Login failed');
+          setLocalLoading(false);
+        }
+      } else {
+        setError(err.message || 'Login failed');
+        setLocalLoading(false);
+      }
     }
   };
 
   const isLoading = authLoading || localLoading;
+
+  // 3. SECURE LOADING STATE: If we recognize a user but context is still fetching profile,
+  // show a spinner instead of the login form to prevent UI flicker.
+  if (user) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'white' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="spinner" style={{ borderTopColor: '#4F46E5', width: 40, height: 40 }}></div>
+          <p style={{ marginTop: 16, fontSize: 13, color: '#6B7280', fontWeight: 600 }}>Logging you in...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ 

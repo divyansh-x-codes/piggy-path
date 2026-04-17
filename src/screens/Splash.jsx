@@ -1,16 +1,24 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAppContext } from '../context/AppContext';
 
 const Splash = () => {
   const navigate = useNavigate();
+  const { user, loading } = useAppContext();
 
-  // Auto-navigate to auth after 1.8s (matching HTML behavior)
+  // Auto-navigate after splash animation (1.8s)
   useEffect(() => {
+    if (loading) return; // Wait for initial auth check
+
     const timer = setTimeout(() => {
-      navigate('/auth', { replace: true });
+      if (user) {
+        navigate('/home', { replace: true });
+      } else {
+        navigate('/auth', { replace: true });
+      }
     }, 1800);
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, user, loading]);
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#FAFAFA' }}>

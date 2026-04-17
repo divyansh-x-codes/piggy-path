@@ -121,36 +121,53 @@ export const AppProvider = ({ children }) => {
   // ─── AUTH + INITIAL LOAD ───────────────────────────────────────────────────
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log("AUTH_STATE_CHANGE:", firebaseUser?.uid || 'NO_USER');
+      console.log("---------- AUTH_STATE_CHANGE ----------");
+      console.log("UID:", firebaseUser?.uid || 'NO_USER');
+      
+      try {
+        if (firebaseUser) {
+          setUser(firebaseUser);
+          
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userSnap = await getDoc(userRef);
 
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) {
-          console.log("PROFILE_MISSING - Initializing...");
-          const initialProfile = { 
-            balance: 100000, 
-            role: firebaseUser.email === 'simplydivyanshk@gmail.com' ? 'admin' : 'user',
-            createdAt: Date.now() 
-          };
-          await setDoc(userRef, initialProfile);
-          setUserData(initialProfile);
-          await setDoc(doc(db, 'portfolios', firebaseUser.uid), { holdings: {}, updatedAt: Date.now() });
+          let currentProfile;
+          if (!userSnap.exists()) {
+            console.log("[AppContext] PROFILE_MISSING - Initializing new user");
+            currentProfile = { 
+              balance: 100000, 
+              role: firebaseUser.email === 'simplydivyanshk@gmail.com' ? 'admin' : 'user',
+              displayName: firebaseUser.displayName || 'Investor',
+              email: firebaseUser.email,
+              createdAt: Date.now() 
+            };
+            await setDoc(userRef, currentProfile);
+            await setDoc(doc(db, 'portfolios', firebaseUser.uid), { holdings: {}, updatedAt: Date.now() });
+          } else {
+            currentProfile = userSnap.data();
+          }
+          
+          setUserData(currentProfile);
+          setIsAdmin(firebaseUser.email === 'simplydivyanshk@gmail.com' || currentProfile.role === 'admin');
+          console.log("[AppContext] Admin Status:", (firebaseUser.email === 'simplydivyanshk@gmail.com' || currentProfile.role === 'admin'));
+          
+          // Parallel fetch to speed up loading
+          await Promise.all([
+            fetchStocks(),
+            fetchPortfolio(firebaseUser.uid)
+          ]);
         } else {
-          setUserData(userSnap.data());
+          setUser(null);
+          setUserData({ balance: 100000 });
+          setPortfolio({ holdings: {} });
+          setIsAdmin(false);
         }
-        
-        // Initial Fetch (Once)
-        await fetchStocks();
-        await fetchPortfolio(firebaseUser.uid);
-      } else {
-        setUser(null);
-        setUserData({ balance: 100000 });
-        setPortfolio({ holdings: {} });
+      } catch (err) {
+        console.error("CRITICAL_AUTH_INIT_ERROR:", err);
+      } finally {
+        setLoading(false);
+        console.log("[AppContext] Loading finished.");
       }
-      setLoading(false);
     });
     return unsubscribe;
   }, [fetchStocks, fetchPortfolio]);
