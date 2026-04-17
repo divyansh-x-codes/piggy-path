@@ -14,7 +14,8 @@ import {
   query,
   orderBy,
   addDoc,
-  deleteDoc
+  deleteDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { STOCKS as MOCK_STOCKS } from '../data/mockData';
 
@@ -451,6 +452,53 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const resetGlobalEconomy = async () => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    try {
+      console.log("[Economy] Purging all user data...");
+      const usersSnap = await getDocs(collection(db, 'users'));
+      
+      // 1. Reset all Users
+      const userUpdates = usersSnap.docs.map(u => 
+        setDoc(doc(db, 'users', u.id), { 
+          balance: 50000, 
+          portfolioValue: 50000,
+          updatedAt: Date.now() 
+        }, { merge: true })
+      );
+
+      // 2. Clear all Portfolios
+      const portfoliosSnap = await getDocs(collection(db, 'portfolios'));
+      const portfolioUpdates = portfoliosSnap.docs.map(p => 
+        setDoc(doc(db, 'portfolios', p.id), { 
+          holdings: {}, 
+          updatedAt: Date.now() 
+        })
+      );
+
+      // 3. Reset All Stocks
+      const stockUpdates = MOCK_STOCKS.map(stock => 
+        setDoc(doc(db, 'stocks', stock.id), {
+          price: stock.basePrice || 80,
+          prevPrice: stock.basePrice || 80,
+          history: [stock.basePrice || 80],
+          updatedAt: Date.now()
+        }, { merge: true })
+      );
+
+      await Promise.all([...userUpdates, ...portfolioUpdates, ...stockUpdates]);
+
+      // 4. Force Leaderboard Sync
+      await forceSeed(); // Using existing sync logic to clean the leaderboard doc
+      
+      console.log("[Economy] GLOBAL PURGE COMPLETE!");
+      return { success: true };
+    } catch (e) {
+      console.error('Economy Purge Failed:', e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
   // ─── ARTICLE PUBLISHING ───
   const publishArticle = async (articleData) => {
     if (!isAdmin) return { success: false, error: 'Unauthorized' };
@@ -477,6 +525,19 @@ export const AppProvider = ({ children }) => {
       return { success: true };
     } catch (e) {
       console.error('Delete Error:', e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
+  const clearAllArticles = async () => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    try {
+      const snap = await getDocs(collection(db, 'articles'));
+      const deletes = snap.docs.map(d => deleteDoc(doc(db, 'articles', d.id)));
+      await Promise.all(deletes);
+      return { success: true };
+    } catch (e) {
+      console.error('Clear All Articles Error:', e);
       return { success: false, error: e.toString() };
     }
   };
@@ -581,7 +642,7 @@ export const AppProvider = ({ children }) => {
       stocks, // Add this
       getPrice, getChange, getPriceHistory, getPortfolioValue,
       confirmTrade, applyIPO, forceSeed, resetData, manipulatePrice,
-      publishArticle, deleteArticle, articles, setArticles,
+      publishArticle, deleteArticle, clearAllArticles, resetGlobalEconomy, articles, setArticles,
       STOCKS: MOCK_STOCKS
     }}>
       {children}

@@ -46,7 +46,7 @@ const Home = () => {
   const {
     portfolio, getPortfolioValue, userData,
     getPrice, getChange, forceSeed, user, stocks, isAdmin,
-    publishArticle, deleteArticle, articles
+    publishArticle, deleteArticle, articles, clearAllArticles, resetGlobalEconomy
   } = useAppContext();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
@@ -264,6 +264,29 @@ const Home = () => {
                   style={{ color: '#7C3AED', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 4 }}
                 >
                   SYNC DATA ↺
+                </div>
+                <div 
+                  onClick={async () => {
+                    if (window.confirm("DELETE ALL NEWS ARTICLES? This cannot be undone.")) {
+                      await clearAllArticles();
+                    }
+                  }}
+                  style={{ color: '#EF4444', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 8 }}
+                >
+                  CLEAR NEWS ×
+                </div>
+                <div 
+                  onClick={async () => {
+                    if (window.confirm("RESET THE ENTIRE GLOBAL ECONOMY? All users will lose their stocks and be reset to ₹50,000. This is IRREVERSIBLE.")) {
+                      if (window.confirm("ARE YOU ABSOLUTELY SURE?")) {
+                         await resetGlobalEconomy();
+                         alert("ECONOMY PURGED SUCCESSFULLY.");
+                      }
+                    }
+                  }}
+                  style={{ color: '#F97316', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 8 }}
+                >
+                  PURGE ECONOMY ⚠
                 </div>
               </div>
             </div>
