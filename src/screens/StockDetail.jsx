@@ -203,8 +203,8 @@ const StockDetail = () => {
 
           {/* Live Indicator */}
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e', animation: 'pulse 2s infinite' }}></div>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#22c55e', letterSpacing: '1px' }}>LIVE MARKET</span>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: isMarketOpen ? '#22c55e' : '#EF4444', boxShadow: `0 0 8px ${isMarketOpen ? '#22c55e' : '#EF4444'}`, animation: 'pulse 2s infinite' }}></div>
+            <span style={{ fontSize: 11, fontWeight: 800, color: isMarketOpen ? '#22c55e' : '#EF4444', letterSpacing: '1px' }}>{isMarketOpen ? 'LIVE MARKET' : 'MARKET HALTED'}</span>
           </div>
 
           <style>{`

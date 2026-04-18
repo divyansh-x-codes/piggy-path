@@ -304,8 +304,8 @@ const Home = () => {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <div>
-                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: isMarketOpen ? '#22C55E' : '#EF4444', textTransform: 'uppercase', letterSpacing: 1.5 }}>Master Control</p>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: 'black' }}>{isMarketOpen ? 'Market is LIVE' : 'Market is CLOSED'}</h3>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 900, color: isMarketOpen ? '#22C55E' : '#EF4444', textTransform: 'uppercase', letterSpacing: 1.5 }}>{isMarketOpen ? 'Public Mode' : 'Hard Lock'}</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: 'black' }}>{isMarketOpen ? 'Market is LIVE' : 'Market is HALTED'}</h3>
               </div>
               <button 
                 onClick={() => {

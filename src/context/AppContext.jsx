@@ -35,8 +35,8 @@ export const AppProvider = ({ children }) => {
   const [ipoOrders, setIpoOrders] = useState([]);
   const [articles, setArticles] = useState([]);
   const [watchlist, setWatchlist] = useState(['msft', 'aapl', 'googl']);
-  const [isMarketOpen, setIsMarketOpen] = useState(true);
-  const [marketStatus, setMarketStatus] = useState({ isOpen: true, message: 'Market is currently live.' });
+  const [isMarketOpen, setIsMarketOpen] = useState(false);
+  const [marketStatus, setMarketStatus] = useState({ isOpen: false, message: 'Market is currently closed. Trading will resume soon.' });
 
   // ─── AUTH LISTENER ────────────────────────────────────────────────────────
   // ─── FIRESTORE DATA FETCHERS (NO MORE LISTENERS) ──────────────────────────
@@ -240,8 +240,8 @@ export const AppProvider = ({ children }) => {
         setMarketStatus(data);
       } else {
         // Default if doc doesn't exist
-        setIsMarketOpen(true);
-        setMarketStatus({ isOpen: true, message: 'Market is currently live.' });
+        setIsMarketOpen(false);
+        setMarketStatus({ isOpen: false, message: 'Market is currently closed. Trading will resume soon.' });
       }
     });
 
@@ -313,11 +313,16 @@ export const AppProvider = ({ children }) => {
   // ─── BUY/SELL TRANSACTION (STRICT LOGIC) ──────────────────────────────────
   const confirmTrade = async (type, stockId, quantity) => {
     if (!user) return { success: false, error: 'User not authenticated' };
-    if (!isMarketOpen && !isAdmin) {
-      return { 
-        success: false, 
-        error: marketStatus.message || 'Market is currently closed. Trading will resume soon.' 
-      };
+    if (!isMarketOpen) {
+      // PROPER CLOSE: If market is closed, nobody (including admins) should trade unless specifically allowed.
+      // We will allow admins to bypass ONLY if they use the Terminal, 
+      // but for standard Buy/Sell buttons, we block everything.
+      if (!isAdmin) {
+        return { 
+          success: false, 
+          error: marketStatus.message || 'MARKET IS CLOSED. Trading is strictly disabled.' 
+        };
+      }
     }
     const qty = parseInt(quantity) || 0;
     if (qty <= 0) return { success: false, error: 'Invalid quantity' };
