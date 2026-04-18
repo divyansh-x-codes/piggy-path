@@ -4,6 +4,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAppContext } from '../context/AppContext';
 import { RESEARCH_REPORTS } from '../data/mockData';
+import MarketBanner from '../components/MarketBanner';
 
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -12,7 +13,7 @@ const StockDetail = () => {
   const navigate = useNavigate();
   const {
     portfolio, getPrice, getChange, userData,
-    confirmTrade, STOCKS, resetData, isAdmin
+    confirmTrade, STOCKS, resetData, isAdmin, isMarketOpen, marketStatus
   } = useAppContext();
 
   // ─── ALL STATE ──────────────────────────────────────────────────────────
@@ -177,6 +178,7 @@ const StockDetail = () => {
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 40 }}>
+        <MarketBanner />
 
         {/* Price Card with Graph */}
         <div style={{ margin: '0 16px 20px', border: '1.5px solid #e5e7eb', borderRadius: 24, padding: '24px 0 16px', overflow: 'hidden' }}>
@@ -216,8 +218,32 @@ const StockDetail = () => {
 
         {/* BUY / SELL / NEWS */}
         <div style={{ display: 'flex', gap: 10, margin: '0 16px 20px' }}>
-          <button onClick={() => { setTradeType('buy'); setTradeQty(1); setShowConfirm(''); setTradeModalOpen(true); }} style={{ flex: 1.2, padding: '15px 0', borderRadius: 50, background: '#22c55e', color: 'white', fontWeight: 800, fontSize: 15, border: 'none', cursor: 'pointer' }}>BUY</button>
-          <button onClick={() => { setTradeType('sell'); setTradeQty(1); setShowConfirm(''); setTradeModalOpen(true); }} style={{ flex: 1.2, padding: '15px 0', borderRadius: 50, background: '#7C3AED', color: 'white', fontWeight: 800, fontSize: 15, border: 'none', cursor: 'pointer' }}>SELL</button>
+          <button 
+            disabled={!isMarketOpen && !isAdmin}
+            onClick={() => { setTradeType('buy'); setTradeQty(1); setShowConfirm(''); setTradeModalOpen(true); }} 
+            style={{ 
+              flex: 1.2, padding: '15px 0', borderRadius: 50, 
+              background: (!isMarketOpen && !isAdmin) ? '#94A3B8' : '#22c55e', 
+              color: 'white', fontWeight: 800, fontSize: 15, border: 'none', 
+              cursor: (!isMarketOpen && !isAdmin) ? 'not-allowed' : 'pointer',
+              opacity: (!isMarketOpen && !isAdmin) ? 0.7 : 1
+            }}
+          >
+            BUY
+          </button>
+          <button 
+            disabled={!isMarketOpen && !isAdmin}
+            onClick={() => { setTradeType('sell'); setTradeQty(1); setShowConfirm(''); setTradeModalOpen(true); }} 
+            style={{ 
+              flex: 1.2, padding: '15px 0', borderRadius: 50, 
+              background: (!isMarketOpen && !isAdmin) ? '#94A3B8' : '#7C3AED', 
+              color: 'white', fontWeight: 800, fontSize: 15, border: 'none', 
+              cursor: (!isMarketOpen && !isAdmin) ? 'not-allowed' : 'pointer',
+              opacity: (!isMarketOpen && !isAdmin) ? 0.7 : 1
+            }}
+          >
+            SELL
+          </button>
           <button onClick={() => goScreen('news')} style={{ flex: 1, padding: '15px 0', borderRadius: 50, background: 'white', color: 'black', fontWeight: 700, fontSize: 15, border: '1px solid #e5e7eb', cursor: 'pointer' }}>News</button>
         </div>
 

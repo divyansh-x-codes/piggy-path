@@ -35,6 +35,8 @@ export const AppProvider = ({ children }) => {
   const [ipoOrders, setIpoOrders] = useState([]);
   const [articles, setArticles] = useState([]);
   const [watchlist, setWatchlist] = useState(['msft', 'aapl', 'googl']);
+  const [isMarketOpen, setIsMarketOpen] = useState(true);
+  const [marketStatus, setMarketStatus] = useState({ isOpen: true, message: 'Market is currently live.' });
 
   // ─── AUTH LISTENER ────────────────────────────────────────────────────────
   // ─── FIRESTORE DATA FETCHERS (NO MORE LISTENERS) ──────────────────────────
@@ -228,6 +230,24 @@ export const AppProvider = ({ children }) => {
     };
   }, [user?.uid]);
 
+  // ─── MARKET CONFIG LISTENER ───
+  useEffect(() => {
+    console.log("[AppContext] Subscribing to MARKET CONFIG...");
+    const unsubMarketConfig = onSnapshot(doc(db, 'config', 'market'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data();
+        setIsMarketOpen(data.isOpen ?? true);
+        setMarketStatus(data);
+      } else {
+        // Default if doc doesn't exist
+        setIsMarketOpen(true);
+        setMarketStatus({ isOpen: true, message: 'Market is currently live.' });
+      }
+    });
+
+    return () => unsubMarketConfig();
+  }, []);
+
   // Debug Logs
   useEffect(() => {
     console.log("USER:", user?.uid);
@@ -293,6 +313,12 @@ export const AppProvider = ({ children }) => {
   // ─── BUY/SELL TRANSACTION (STRICT LOGIC) ──────────────────────────────────
   const confirmTrade = async (type, stockId, quantity) => {
     if (!user) return { success: false, error: 'User not authenticated' };
+    if (!isMarketOpen && !isAdmin) {
+      return { 
+        success: false, 
+        error: marketStatus.message || 'Market is currently closed. Trading will resume soon.' 
+      };
+    }
     const qty = parseInt(quantity) || 0;
     if (qty <= 0) return { success: false, error: 'Invalid quantity' };
 
@@ -542,6 +568,22 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const toggleMarket = async (isOpen, message = '') => {
+    if (!isAdmin) return { success: false, error: 'Unauthorized' };
+    try {
+      await setDoc(doc(db, 'config', 'market'), {
+        isOpen,
+        message: message || (isOpen ? 'Market is currently live.' : 'Market is currently closed. Trading will resume soon.'),
+        updatedAt: serverTimestamp(),
+        updatedBy: user?.email
+      }, { merge: true });
+      return { success: true };
+    } catch (e) {
+      console.error('Toggle Market Error:', e);
+      return { success: false, error: e.toString() };
+    }
+  };
+
   const forceSeed = async () => {
     console.log('[Firestore] Exclusive Seed Triggered — Removing unknown companies...');
     try {
@@ -639,10 +681,11 @@ export const AppProvider = ({ children }) => {
       currentStock, setCurrentStock,
       ipoOrders, watchlist, setWatchlist, userData, setUserData, user,
       isAdmin, loading,
-      stocks, // Add this
+      stocks, isMarketOpen, marketStatus,
       getPrice, getChange, getPriceHistory, getPortfolioValue,
       confirmTrade, applyIPO, forceSeed, resetData, manipulatePrice,
-      publishArticle, deleteArticle, clearAllArticles, resetGlobalEconomy, articles, setArticles,
+      publishArticle, deleteArticle, clearAllArticles, resetGlobalEconomy, toggleMarket,
+      articles, setArticles,
       STOCKS: MOCK_STOCKS
     }}>
       {children}

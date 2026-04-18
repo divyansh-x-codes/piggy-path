@@ -4,6 +4,7 @@ import { useAppContext } from '../context/AppContext';
 import { STOCKS, NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 import { Line } from 'react-chartjs-2';
+import MarketBanner from '../components/MarketBanner';
 import stocksIcon from '../assets/icons8-stock-market-96.png';
 import ipoIcon from '../assets/ipo-icon.png';
 import watchlistIcon from '../assets/watchlist-icon.png';
@@ -52,29 +53,10 @@ const Home = () => {
   const {
     portfolio, getPortfolioValue, userData,
     getPrice, getChange, forceSeed, user, stocks, isAdmin,
-    publishArticle, deleteArticle, articles, clearAllArticles, resetGlobalEconomy
+    isMarketOpen, marketStatus, toggleMarket, articles
   } = useAppContext();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
-  const [leaderboard, setLeaderboard] = React.useState(null);
-
-  const isSuperAdmin = isAdmin;
-  const [userLeaderboard, setUserLeaderboard] = React.useState({ data: [], updatedAt: null });
-  const [isNewsModalOpen, setIsNewsModalOpen] = React.useState(false);
-  const [newsForm, setNewsForm] = React.useState({ title: '', body: '', cat: 'Trending', stock: '' });
-  const [isPublishing, setIsPublishing] = React.useState(false);
-
-  // 1. Listen for USER LEADERBOARD (Admin View)
-  React.useEffect(() => {
-    if (!isSuperAdmin) return;
-    const unsub = onSnapshot(doc(db, "leaderboard", "users_global"), (snap) => {
-      if (snap.exists()) {
-        setUserLeaderboard(snap.data());
-      }
-    });
-    return () => unsub();
-  }, [isSuperAdmin]);
-
   const portfolioValue = getPortfolioValue();
 
   const handleSearch = (e) => {
@@ -239,367 +221,6 @@ const Home = () => {
     );
   };
 
-  if (isSuperAdmin) {
-    return (
-      <div style={{ 
-        flex: 1, display: 'flex', flexDirection: 'column', height: '100%', 
-        background: 'linear-gradient(180deg, #101827 0%, #0B0F1A 100%)',
-        color: 'white', fontFamily: "'Inter', sans-serif" 
-      }}>
-
-        {/* HEADER - USER PERFORMANCE (Admin Terminal) */}
-        <div style={{ padding: '36px 24px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <h1 style={{ fontSize: '24px', fontWeight: '900', margin: 0, letterSpacing: '-0.3px', color: '#FFFFFF', textShadow: '0 0 20px rgba(255,255,255,0.1)' }}>TERMINAL</h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
-                <div className="pulse-emerald" style={{ width: '8px', height: '8px', background: '#4ADE80', borderRadius: '50%', boxShadow: '0 0 10px #4ADE80' }}></div>
-                <span style={{ fontSize: '10px', fontWeight: '900', color: '#4ADE80', letterSpacing: '1.5px', textTransform: 'uppercase' }}>User Realtime Sync</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-              <div style={{ textAlign: 'right', borderLeft: '1px solid rgba(255,255,255,0.05)', paddingLeft: 24 }}>
-                <div style={{ color: '#94A3B8', fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }}>{userLeaderboard.data?.length || 0} Traders</div>
-                <div 
-                  onClick={async () => {
-                    if (window.confirm("SYNC MARKET DATA?")) {
-                      await forceSeed();
-                    }
-                  }}
-                  style={{ color: '#7C3AED', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 4 }}
-                >
-                  SYNC DATA ↺
-                </div>
-                <div 
-                  onClick={async () => {
-                    if (window.confirm("DELETE ALL NEWS ARTICLES? This cannot be undone.")) {
-                      await clearAllArticles();
-                    }
-                  }}
-                  style={{ color: '#EF4444', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 8 }}
-                >
-                  CLEAR NEWS ×
-                </div>
-                <div 
-                  onClick={async () => {
-                    if (window.confirm("RESET THE ENTIRE GLOBAL ECONOMY? All users will lose their stocks and be reset to ₹50,000. This is IRREVERSIBLE.")) {
-                      if (window.confirm("ARE YOU ABSOLUTELY SURE?")) {
-                         await resetGlobalEconomy();
-                         alert("ECONOMY PURGED SUCCESSFULLY.");
-                      }
-                    }
-                  }}
-                  style={{ color: '#F97316', fontSize: '11px', fontWeight: '900', cursor: 'pointer', marginTop: 8 }}
-                >
-                  PURGE ECONOMY ⚠
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 16px 100px' }}>
-          <motion.div 
-            layout
-            style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}
-          >
-            {/* LARGE PUBLISH BUTTON (MID) */}
-            <motion.div 
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => setIsNewsModalOpen(true)}
-              style={{
-                background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
-                borderRadius: 24,
-                padding: '32px',
-                border: '1.5px solid rgba(99, 102, 241, 0.3)',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.4), inset 0 0 20px rgba(99, 102, 241, 0.1)',
-                cursor: 'pointer',
-                textAlign: 'center',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              <div style={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, background: 'rgba(99, 102, 241, 0.1)', borderRadius: '50%', blur: '40px' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(99, 102, 241, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#A5B4FC" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                </div>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.2px' }}>PUBLISH NEW BROADCAST</h3>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#A5B4FC', opacity: 0.8, textTransform: 'uppercase', letterSpacing: 1 }}>Global Realtime Article System</p>
-                </div>
-              </div>
-            </motion.div>
-
-            <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'center' }}>
-               <span style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', letterSpacing: 3, textTransform: 'uppercase' }}>Global Leaderboard</span>
-            </div>
-
-            <AnimatePresence mode="popLayout">
-            {(userLeaderboard.data || []).length === 0 ? (
-              <div style={{ padding: '40px 20px', textAlign: 'center', background: 'rgba(31, 41, 55, 0.2)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.05)' }}>
-                <p style={{ color: '#94A3B8', fontSize: 14, fontWeight: 700 }}>No traders yet...</p>
-                <p style={{ color: '#64748B', fontSize: 11, marginTop: 4 }}>Be the first to trade and claim the #1 spot!</p>
-              </div>
-            ) : (
-              (userLeaderboard.data || []).map((u, i) => {
-                const cardThemeColor = i === 0 ? '#4ADE80' : i === 1 ? '#60A5FA' : i === 2 ? '#FBBF24' : '#94A3B8';
-
-                return (
-                  <motion.div 
-                    layout
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    key={u.uid} 
-                    className="innovation-card"
-                    style={{
-                      background: 'rgba(31, 41, 55, 0.3)',
-                      backdropFilter: 'blur(12px)',
-                      borderRadius: '24px',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      overflow: 'hidden',
-                      transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
-                      position: 'relative'
-                    }}
-                  >
-                    {/* Rank Badge */}
-                    <motion.div 
-                      layout
-                      style={{ 
-                        position: 'absolute', top: 12, left: 14, 
-                        fontSize: '11px', fontWeight: '900', color: cardThemeColor, 
-                        background: `${cardThemeColor}11`, padding: '2px 8px', borderRadius: 8,
-                        zIndex: 2
-                      }}
-                    >
-                      {u.rank || i + 1}
-                    </motion.div>
-
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '24px 18px 18px',
-                        gap: 12
-                      }}
-                    >
-                      {/* Left: User Info */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '0 0 45%', minWidth: 0 }}>
-                        <div style={{
-                          width: '48px',
-                          height: '48px',
-                          flexShrink: 0,
-                          borderRadius: '16px',
-                          background: 'rgba(0, 0, 0, 0.4)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: `1.5px solid ${cardThemeColor}33`,
-                          boxShadow: `inset 0 0 15px ${cardThemeColor}11`
-                        }}>
-                          <Users size={20} color={cardThemeColor} strokeWidth={2.5} />
-                        </div>
-                        
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ 
-                            fontSize: '14px', 
-                            fontWeight: '900', 
-                            color: '#FFFFFF', 
-                            letterSpacing: '-0.2px', 
-                            whiteSpace: 'nowrap', 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis' 
-                          }}>
-                            {u.username}
-                          </div>
-                          <div style={{ fontSize: '10px', color: '#94A3B8', fontWeight: '700', marginTop: 2, display: 'flex', gap: 4, alignItems: 'center' }}>
-                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.email}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Center: Rank Movement */}
-                      <div style={{ flex: '1', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(0,0,0,0.2)', padding: '4px 10px', borderRadius: 6 }}>
-                          {u.rankChange === 'up' ? (
-                            <>
-                              <TrendingUp size={12} color="#4ADE80" />
-                              <span style={{ fontSize: '9px', fontWeight: '900', color: '#4ADE80', letterSpacing: 0.5 }}>MOVED UP</span>
-                            </>
-                          ) : u.rankChange === 'down' ? (
-                            <>
-                              <TrendingUp size={12} color="#F87171" style={{ transform: 'rotate(180deg)' }} />
-                              <span style={{ fontSize: '9px', fontWeight: '900', color: '#F87171', letterSpacing: 0.5 }}>MOVED DOWN</span>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: '9px', fontWeight: '900', color: '#94A3B8', letterSpacing: 0.5 }}>NO CHANGE</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right: Portfolio Value */}
-                      <div style={{ textAlign: 'right', flex: '0 0 35%', minWidth: 80 }}>
-                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#FFFFFF', marginBottom: '6px' }}>
-                          ₹{u.portfolioValue?.toLocaleString('en-IN')}
-                        </div>
-                        <div style={{
-                          padding: '4px 8px',
-                          borderRadius: '8px',
-                          background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          color: '#94A3B8',
-                          fontSize: '10px',
-                          fontWeight: '900',
-                          display: 'inline-flex',
-                          alignItems: 'center'
-                        }}>
-                          PORTFOLIO RANK
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* PROGESS BAR (Visual Decoration) */}
-                    <div style={{ height: '4px', width: '100%', background: 'rgba(0,0,0,0.3)', position: 'relative' }}>
-                       <div style={{ 
-                         height: '100%', 
-                         width: `${Math.max(10, 100 - (i * 10))}%`, 
-                         background: `linear-gradient(90deg, ${cardThemeColor}22, ${cardThemeColor})`,
-                         boxShadow: `0 0 15px ${cardThemeColor}44`,
-                         borderRadius: '0 4px 4px 0'
-                       }} />
-                    </div>
-                  </motion.div>
-                );
-              })
-            )}
-            </AnimatePresence>
-          </motion.div>
-          <div style={{ padding: '60px 0', textAlign: 'center', opacity: 0.2 }}>
-            <p style={{ fontSize: 11, fontWeight: 800, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '4px' }}>Global Leaderboard</p>
-          </div>
-        </div>
-
-        {/* NEWS PUBLISHING MODAL */}
-        <AnimatePresence>
-          {isNewsModalOpen && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              style={{
-                position: 'fixed', inset: 0, 
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)',
-                zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: 20
-              }}
-            >
-              <motion.div 
-                initial={{ scale: 0.9, y: 20 }}
-                animate={{ scale: 1, y: 0 }}
-                exit={{ scale: 0.9, y: 20 }}
-                style={{
-                  width: '100%', maxWidth: 500, background: '#111827',
-                  borderRadius: 32, border: '1px solid rgba(255,255,255,0.1)',
-                  padding: 32, boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-                  <h2 style={{ fontSize: 20, fontWeight: 900, margin: 0, color: '#FFFFFF' }}>DRAFT NEWS</h2>
-                  <div onClick={() => setIsNewsModalOpen(false)} style={{ cursor: 'pointer', color: '#6B7280' }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Headline</label>
-                    <input 
-                      value={newsForm.title}
-                      onChange={e => setNewsForm({...newsForm, title: e.target.value})}
-                      placeholder="Article Title..."
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14 }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 16 }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Category</label>
-                      <select 
-                        value={newsForm.cat}
-                        onChange={e => setNewsForm({...newsForm, cat: e.target.value})}
-                        style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, appearance: 'none' }}
-                      >
-                        <option value="Trending">Trending</option>
-                        <option value="Market">Market</option>
-                        <option value="Research">Research</option>
-                        <option value="Breaking">Breaking</option>
-                      </select>
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Related Stock</label>
-                      <select 
-                        value={newsForm.stock}
-                        onChange={e => setNewsForm({...newsForm, stock: e.target.value})}
-                        style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, appearance: 'none' }}
-                      >
-                        <option value="">None</option>
-                        {STOCKS.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 10, fontWeight: 900, color: '#4B5563', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, display: 'block' }}>Body Content</label>
-                    <textarea 
-                      value={newsForm.body}
-                      rows={4}
-                      onChange={e => setNewsForm({...newsForm, body: e.target.value})}
-                      placeholder="Write the full report here..."
-                      style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', padding: '14px 18px', borderRadius: 16, color: 'white', fontSize: 14, resize: 'none' }}
-                    />
-                  </div>
-
-                  <button 
-                    disabled={isPublishing || !newsForm.title || !newsForm.body}
-                    onClick={async () => {
-                      setIsPublishing(true);
-                      const res = await publishArticle({
-                        ...newsForm,
-                        stock: newsForm.stock ? STOCKS.find(s => s.id === newsForm.stock).name : 'Global',
-                        ticker: newsForm.stock ? STOCKS.find(s => s.id === newsForm.stock).ticker : 'N/A',
-                        change: newsForm.cat === 'Trending' ? 'Hot' : newsForm.cat === 'Breaking' ? 'Alert' : 'Market'
-                      });
-                      if (res.success) {
-                        setIsNewsModalOpen(false);
-                        setNewsForm({ title: '', body: '', cat: 'Trending', stock: '' });
-                      } else {
-                        alert("FAILED: " + res.error);
-                      }
-                      setIsPublishing(false);
-                    }}
-                    style={{ 
-                      width: '100%', padding: '18px', borderRadius: 20, 
-                      background: 'linear-gradient(90deg, #7C3AED, #4F46E5)',
-                      color: 'white', fontWeight: '900', border: 'none', cursor: 'pointer',
-                      marginTop: 12, opacity: (isPublishing || !newsForm.title || !newsForm.body) ? 0.5 : 1
-                    }}
-                  >
-                    {isPublishing ? 'PUBLISHING...' : 'PUBLISH REALTIME'}
-                  </button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <BottomNav active="home" />
-      </div>
-    );
-  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: '#FAFAFA' }}>
@@ -653,19 +274,52 @@ const Home = () => {
           )}
         </div>
 
-        <div onClick={async () => {
-          try {
-            await forceSeed();
-            alert('🟢 Cloud Market Data Synchronized!');
-          } catch (e) {
-            alert('🔴 Sync Failed: Check Firestore rules.');
-          }
-        }} style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', background: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
-        </div>
+        {isAdmin && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <div onClick={() => navigate('/admin')} style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', background: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line></svg>
+            </div>
+            <div onClick={async () => {
+              try {
+                await forceSeed();
+                alert('🟢 Cloud Market Data Synchronized!');
+              } catch (e) {
+                alert('🔴 Sync Failed: Check Firestore rules.');
+              }
+            }} style={{ width: 42, height: 42, borderRadius: '50%', border: '1.5px solid black', background: '#22C55E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', cursor: 'pointer' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 100 }}>
+        <MarketBanner />
+
+        {isAdmin && (
+          <div style={{ padding: '0 16px', marginTop: 16 }}>
+            <div style={{ 
+              background: isMarketOpen ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)',
+              borderRadius: '24px', padding: '16px', border: '1.5px solid black',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <div>
+                <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: isMarketOpen ? '#22C55E' : '#EF4444', textTransform: 'uppercase', letterSpacing: 1.5 }}>Master Control</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: 'black' }}>{isMarketOpen ? 'Market is LIVE' : 'Market is CLOSED'}</h3>
+              </div>
+              <button 
+                onClick={() => {
+                   if (window.confirm(`Are you sure you want to ${isMarketOpen ? 'CLOSE' : 'OPEN'} the market?`)) {
+                     toggleMarket(!isMarketOpen);
+                   }
+                }}
+                style={{ background: isMarketOpen ? '#EF4444' : '#22C55E', color: 'white', border: '2px solid black', padding: '10px 18px', borderRadius: 16, fontWeight: 900, fontSize: 12, cursor: 'pointer', boxShadow: '2px 2px 0px black' }}
+              >
+                {isMarketOpen ? 'CLOSE' : 'OPEN'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* HERO CARD */}
         <div style={{ background: 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)', margin: 16, borderRadius: 24, padding: 24, color: 'white', position: 'relative', overflow: 'hidden', boxShadow: '0 8px 24px rgba(124, 58, 237, 0.3)', border: '1px solid rgba(255,255,255,0.1)' }}>
