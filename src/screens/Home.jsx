@@ -4,6 +4,12 @@ import { useAppContext } from '../context/AppContext';
 import { STOCKS, NEWS } from '../data/mockData';
 import { BottomNav } from '../components/Shared';
 import { Line } from 'react-chartjs-2';
+import stocksIcon from '../assets/icons8-stock-market-96.png';
+import ipoIcon from '../assets/ipo-icon.png';
+import watchlistIcon from '../assets/watchlist-icon.png';
+import bucketIcon from '../assets/bucket-icon.png';
+
+
 
 import { doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -698,19 +704,25 @@ const Home = () => {
         {/* Shortcuts */}
         <div style={{ display: 'flex', justifyContent: 'space-around', padding: '0 16px 20px' }}>
           {[
-            { id: 'stocks', icon: '📈', label: 'Stocks' },
-            { id: 'ipo', icon: '🏦', label: 'IPO' },
-            { id: 'watchlist', icon: '👁️', label: 'Watchlist' },
-            { id: 'bucket', icon: '🪣', label: 'Bucket' }
+            { id: 'stocks', icon: stocksIcon, label: 'Stocks', isImage: true },
+            { id: 'ipo', icon: ipoIcon, label: 'IPO', isImage: true },
+            { id: 'watchlist', icon: watchlistIcon, label: 'Watchlist', isImage: true },
+            { id: 'bucket', icon: bucketIcon, label: 'Bucket', isImage: true }
           ].map(item => (
+
             <div key={item.id} onClick={() => navigate(`/${item.id}`)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-              <div style={{ width: 56, height: 56, border: '1.5px solid var(--border)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: 'white' }}>
-                {item.icon}
+              <div style={{ width: 56, height: 56, border: '1.5px solid var(--border)', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, background: 'white', overflow: 'hidden' }}>
+                {item.isImage ? (
+                  <img src={item.icon} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  item.icon
+                )}
               </div>
               <span style={{ fontSize: 12, fontWeight: 600, color: 'black' }}>{item.label}</span>
             </div>
           ))}
         </div>
+
 
         {/* My Portfolio */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>

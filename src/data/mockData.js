@@ -2757,7 +2757,8 @@ export const RESEARCH_REPORTS = {
 };
 
 export const IPO_DATA = {
-  current: [
+  current: [],
+  closed: [
     { name: 'Xads Pvt. Ltd.', priceRange: '80' },
     { name: 'VoltNest Energy Pvt. Ltd.', priceRange: '218' },
     { name: 'SkillBridge EdTech Pvt. Ltd.', priceRange: '95' },
@@ -2766,8 +2767,17 @@ export const IPO_DATA = {
     { name: 'NeuronIQ', priceRange: '118' },
     { name: 'MediNearby Technologies', priceRange: '150' },
     { name: 'KisanPay Fintech', priceRange: '120' },
-    { name: 'CropPe Technologies', priceRange: '133' }
-  ].map(d => ({ ...d, date: 'Live Now', minInv: '₹' + d.priceRange, minQty: '1', status: 'current' })),
-  closed: [],
+    { name: 'CropPe Technologies', priceRange: '133' },
+    { name: 'SnacQo Pvt. Ltd.', priceRange: '80' },
+    { name: 'PiggyPath', priceRange: '150' },
+    { name: 'Proquoment', priceRange: '142.5' },
+    { name: 'Elite Vendz', priceRange: '115' },
+    { name: 'Mookh AI', priceRange: '140' },
+    { name: 'Cover-Ate Pvt. Ltd.', priceRange: '115' },
+    { name: 'CounselMe', priceRange: '60' },
+    { name: 'GenLush Pvt. Ltd.', priceRange: '105' }
+  ].map(d => ({ ...d, date: 'Closed recently', minInv: '₹' + d.priceRange, minQty: '1', status: 'closed' })),
   listed: []
 };
+
+
