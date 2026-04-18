@@ -49,9 +49,7 @@ export const AppProvider = ({ children }) => {
         const data = userSnap.data();
         setUserData(data);
         setIsAdmin(
-          auth.currentUser?.email === 'simplydivyanshk@gmail.com' || 
-          auth.currentUser?.email === 'divyansh.coredev@gmail.com' || 
-          data.role === 'admin'
+          auth.currentUser?.email === 'simplydivyanshk@gmail.com'
         );
       }
     } catch (e) { console.error("Fetch Profile Error:", e); }
@@ -162,7 +160,7 @@ export const AppProvider = ({ children }) => {
             await setDoc(userRef, newProfile);
             await setDoc(doc(db, 'portfolios', firebaseUser.uid), { holdings: {}, updatedAt: Date.now() });
           } else {
-            setIsAdmin(firebaseUser.email === 'simplydivyanshk@gmail.com' || userSnap.data().role === 'admin');
+            setIsAdmin(firebaseUser.email === 'simplydivyanshk@gmail.com');
           }
           
           // One-time fetch of stocks (market fallback)

@@ -57,7 +57,18 @@ const Home = () => {
   } = useAppContext();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [results, setResults] = React.useState([]);
+  const [userLeaderboard, setUserLeaderboard] = React.useState({ data: [], updatedAt: null });
   const portfolioValue = getPortfolioValue();
+
+  // ─── LEADERBOARD LISTENER (Global Rankings) ───
+  React.useEffect(() => {
+    const unsub = onSnapshot(doc(db, "leaderboard", "users_global"), (snap) => {
+      if (snap.exists()) {
+        setUserLeaderboard(snap.data());
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const handleSearch = (e) => {
     const q = e.target.value;
@@ -384,6 +395,46 @@ const Home = () => {
           <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/stocks')}>View all</span>
         </div>
         {renderPortfolioCards()}
+
+        {/* Global Leaderboard Section (Restored) */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12, marginTop: 12 }}>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'black', fontFamily: '"Syne", sans-serif' }}>Trader Rankings 🏆</span>
+          {isAdmin && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#7C3AED', cursor: 'pointer' }} onClick={() => navigate('/admin')}>Full list</span>
+          )}
+        </div>
+        <div style={{ padding: '0 20px', marginBottom: 20 }}>
+          <div style={{ background: 'white', border: '1.5px solid black', borderRadius: 24, padding: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            {(userLeaderboard.data || []).slice(0, 5).map((u, i) => {
+               const isMe = u.uid === user?.uid;
+               const rankColor = i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#b45309' : '#000';
+               return (
+                 <div key={u.uid} style={{ 
+                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
+                   padding: '12px 0', borderBottom: i === 4 ? 'none' : '1px solid #f1f5f9',
+                   background: isMe ? 'rgba(124, 58, 237, 0.05)' : 'transparent',
+                   borderRadius: 12, margin: isMe ? '0 -8px' : '0', paddingLeft: isMe ? 8 : 0, paddingRight: isMe ? 8 : 0
+                 }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                     <div style={{ width: 30, height: 30, borderRadius: 8, background: i < 3 ? rankColor + '22' : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 900, color: i < 3 ? rankColor : '#64748b' }}>
+                       {i + 1}
+                     </div>
+                     <div>
+                       <div style={{ fontSize: 13, fontWeight: 800, color: 'black' }}>{u.username} {isMe && '(You)'}</div>
+                       <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600 }}>Rank {i + 1}</div>
+                     </div>
+                   </div>
+                   <div style={{ textAlign: 'right' }}>
+                     <div style={{ fontSize: 14, fontWeight: 900, color: 'black' }}>₹{u.portfolioValue?.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+                   </div>
+                 </div>
+               );
+            })}
+            {(!userLeaderboard.data || userLeaderboard.data.length === 0) && (
+              <div style={{ textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: 12, fontWeight: 600 }}>Syncing rankings...</div>
+            )}
+          </div>
+        </div>
 
         {/* Realtime Market Pulse Section */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', marginBottom: 12 }}>
